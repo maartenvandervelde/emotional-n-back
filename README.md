@@ -1,6 +1,6 @@
 # **Emotional n-back** #
 
-###Understanding the cognitive mechanisms of mind-wandering in the depressed mind by modelling an emotional n-back task.###
+### Understanding the cognitive mechanisms of mind-wandering in the depressed mind by modelling an emotional n-back task. ###
 
 ---
 
