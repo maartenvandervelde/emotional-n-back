@@ -1,0 +1,505 @@
+//---------------------------
+// Model of an emotional 0-back task
+//
+// This model requires a custom version of the PRIMs cognitive architecture to run: https://github.com/maartenvandervelde/ACTransfer
+//
+// Copyright Maarten van der Velde
+//
+//---------------------------
+
+
+
+define task emotional-zero-back {
+	
+	task-constants: (target face happy sad neutral same diff start fixation memory)
+	
+	initial-goals: (do-zero-back wander)
+	goals: ()
+	//goal-chunk-spreads: t // the amount of spreading activation from goals depends on their activation, giving them more or less priority (default: nil)
+	
+	// imaginal-autoclear: nil // do not remove chunks from WM automatically
+	default-activation: 1.0 // lower bound on baselevel activation (default: none)
+	imaginal-activation: 0.25 // spreading activation from WM (default 0.0). A value of 0.25 gives it equal strength to goal buffer spreading
+	
+	// default-operator-assoc: 3.0 // strength of association between a goal and its operators (default: 4.0)
+	// default-inter-operator-assoc: 2.0 // strength of association between operators of the same goal (default: 1.0)
+
+
+	
+	pm: t // partial matching		
+}
+
+
+
+define goal do-zero-back {
+	
+	operator store-target {
+ 		"The target expression that appears at the start of the block is stored in the goal buffer"
+ 		V1 	= target
+ 		==>
+ 		V2 -> G3
+ 		press-key -> AC1
+ 		start -> AC2
+ 	}
+
+ 	operator process-face {
+ 		"If a face is perceived, recognise its expression (approximated via a DM retrieval)"
+ 		V1 = face
+ 		V2 <> nil
+ 		V3 = nil
+ 		RT1 = nil
+ 		==>
+ 		face-expression -> RT1
+ 		V2 -> RT3
+ 	}
+
+ 	operator face-expression-matches-target {
+ 		"If a face has been categorised and its expression matches the target, press 'same'."
+ 		RT1 = face-expression
+ 		RT2 = G3
+ 		V3 = nil // check that no response has been made
+ 		==>
+ 		press-key -> AC1
+ 		same -> AC2
+ 	}
+
+ 	operator face-expression-does-not-match-target {
+ 		"If a face has been categorised and its expression does not match the target, press 'diff'."
+ 		RT1 = face-expression
+ 		RT2 <> G3
+ 		V3 = nil // check that no response has been made
+ 		==>
+ 		press-key -> AC1
+ 		diff -> AC2
+ 	}
+
+ 	operator face-expression-not-recognised-respond-same {
+ 		"If a face has not been categorised (because retrieval failed), press 'same' randomly."
+ 		RT1 = error
+ 		V3 = nil // check that no response has been made
+ 		==>
+ 		press-key -> AC1
+ 		same -> AC2
+ 	}
+
+ 	operator face-expression-not-recognised-respond-diff {
+ 		"If a face has not been categorised (because retrieval failed), press 'diff' randomly."
+ 		RT1 = error
+ 		V3 = nil // check that no response has been made
+ 		==>
+ 		press-key -> AC1
+ 		diff -> AC2
+ 	}
+
+ 	operator done-subvocalise-target {
+ 		"When there is nothing left to do, subvocalise the target"
+ 		V3 = done
+ 		==>
+ 		subvocalise -> AC1
+ 		G3 -> AC2
+ 	}
+
+}
+
+
+
+define goal wander {
+	
+	operator ignore-face-wander-instead {
+		"Start mind-wandering when a face stimulus appears"
+		V1 = face
+		V2 <> nil
+		V3 = nil
+		==>
+		memory -> RT1
+		self -> RT2
+	}
+	
+	operator ignore-responding-wander-instead {
+		"Start mind-wandering when a facial expression has been retrieved"
+		RT1 = face-expression
+		==>
+		memory -> RT1
+		self -> RT2
+	}
+	
+	
+	operator done-retrieve-random-memory {
+		"When there is nothing left to do, retrieve a random memory"
+		V3 = done
+		==>
+		memory -> RT1
+		self -> RT2
+	}
+	
+	operator process-memory {
+		"When a random memory has been retrieved, place it in WM"
+		RT1 = memory
+		==>
+		RT4 -> WM1
+	}
+}
+
+
+define facts {		
+	(memory x y) // Explicit definition prevents unintended retrievals of singleton "memory" chunk during mind-wandering	
+}
+
+
+
+define action press-key {
+  latency: 0.3
+  noise: 0.1
+  distribution: uniform
+  output: Pressing
+}
+
+define action subvocalise {
+	latency: 0.3
+	noise: 0.1
+	distribution: uniform
+	output: Subvocalising
+}
+
+
+
+define script {	
+	
+	// The 0-back task consists of 3 blocks of 43 trials each (plus 8 practice trials).
+	// At the start of each block the target expression is presented, together with an example image of that expression.
+	// In each subsequent trial an image is shown. The participant has to indicate whether the image matches the target.
+	// Images are presented for 2 seconds. There is an inter-trial interval of 2.5 seconds.
+	
+	/////////////
+	/// SETUP ///
+	/////////////
+	
+	debug = 1 // Set to 1 to get more verbose output	
+	
+	// Create 46 stimuli of each expression
+	happy-faces = []
+	neutral-faces = []
+	sad-faces = []
+	
+	for i in 0 to 45 {
+		happy-faces[i] = "happy" + i
+		neutral-faces[i] = "neutral" + i
+		sad-faces[i] = "sad" + i	
+	}
+	
+	// Combine all stimuli in a single list
+	all-faces = []
+	for i in 0 to 45 {
+		all-faces[i] = ["happy", happy-faces[i]]		
+		all-faces[i + 46] = ["neutral", neutral-faces[i]]
+		all-faces[i + 92] = ["sad", sad-faces[i]]	
+	}
+	
+	// Add all faces to the model's DM (this allows it to recognise facial expressions)
+	for i in 0 to 137 {
+		face = all-faces[i]
+		chunk-name = "face" + i
+		expression = face[0]
+		image = face[1]
+		add-dm(chunk-name, "face-expression", expression, image)
+		
+		// 3/10/2017: set strength of association between mood chunks and face chunks to a positive value rather than 0
+		// to allow spreading activation from the target (goal buffer) to similar chunks in memory
+		sji_mood_to_face = 1 // in practice the actual SA is 1/4 of this value (since there are 4 slots in the goal buffer)
+		
+		
+		// set activation of face depending on its mood
+		face_activation_happy = 3
+		face_activation_neutral = 2
+		face_activation_sad = 1
+		
+		if (expression == "happy") {
+			set-activation(chunk-name, face_activation_happy)
+			set-sji("happy", chunk-name, sji_mood_to_face)
+		}
+		
+		if (expression == "neutral") {
+			set-activation(chunk-name, face_activation_neutral)
+			set-sji("neutral", chunk-name, sji_mood_to_face)
+		}
+		
+		if (expression == "sad") {
+			set-activation(chunk-name, face_activation_sad)
+			set-sji("sad", chunk-name, sji_mood_to_face)
+		}
+	}
+		
+	all-faces = shuffle(all-faces)
+		
+	
+	// Create 3 blocks of trials, one for each target expression
+	blocks = []
+	
+	happy-target-block = []
+	neutral-target-block = []
+	sad-target-block = []
+	
+	// Put 43 trials in each of the three blocks
+	// Trials are drawn randomly from the complete list
+	for i in 0 to 42 {		
+		happy-target-block[i] = ["happy", all-faces[i]]
+		neutral-target-block[i] = ["neutral", all-faces[i + 43]]
+		sad-target-block[i] = ["sad", all-faces[i + 86]]
+	}
+	
+	
+	// Randomly determine the order in which the three blocks are presented
+	blocks[0] = happy-target-block
+	blocks[1] = neutral-target-block
+	blocks[2] = sad-target-block
+	
+	blocks = shuffle(blocks)
+	
+	if (debug) {
+		print("Setting up 0-back task...")
+		print("Randomly created 3 blocks of trials:")
+		blocknum = 1
+		for block in blocks {
+			print()
+			print("BLOCK ", blocknum)
+			blocknum = blocknum + 1
+			print("______________________________________")
+			print("TARGET      EXPRESSION        FACE")
+			print("______________________________________")
+			trialnum = 0
+			expressions = [0, 0, 0]
+			expr = ""
+			for trial in block {
+				target = trial[0]
+				expression_face = trial[1]
+				expression = expression_face[0]
+				face = expression_face[1]
+				if (expression == "happy") {
+					expressions[0] = expressions[0] + 1
+					expr = "hap"
+				}
+				if (expression == "neutral") {
+					expressions[1] = expressions[1] + 1
+					expr = "neu"
+				}
+				if (expression == "sad") {
+					expressions[2] = expressions[2] + 1
+					expr = "sad"
+				}
+				print(target, "            ", expr, "                   ", face)
+				
+				trialnum = trialnum + 1
+			}
+			print("______________________________________")
+			print("(", trialnum, "trials. Happy:", expressions[0], " Neutral:", expressions[1], " Sad:", expressions[2], ")")
+			print("______________________________________")
+		}
+	}
+	
+	
+	
+	// Create off-task memories
+	// Slots:
+	// title (e.g. memoryhappy1): for convenience.
+	// memory: indicates chunk type; used as first retrieval cue.
+	// self: used as an additional retrieval cue (without it we get weird retrievals of random singletons due to partial matching).
+	// name (e.g. ha1): distinguishes one happy memory from another (i.e. the specific content).
+	// mood (e.g. happy): describes mood of the memory. This part of the memory is placed in WM to spread activation.
+	
+	// Strength of association between mood chunks and corresponding memory chunks
+	sji_mood_to_memory = 1
+	
+	for i in 0 to 10 {
+		memoryhappy = "memoryhappy" + i
+		name = "ha" + i
+		add-dm(memoryhappy, "memory", "self", name, "happy")
+		set-sji("happy", memoryhappy, sji_mood_to_memory)
+		
+		memoryneutral = "memoryneutral" + i
+		name = "ne" + i
+		add-dm(memoryneutral, "memory", "self", name, "neutral")
+		set-sji("neutral", memoryneutral, sji_mood_to_memory)
+		
+		memorysad = "memorysad" + i
+		name = "sa" + i
+		add-dm(memorysad, "memory", "self", name, "sad")
+		set-sji("sad", memorysad, sji_mood_to_memory)
+	}
+	
+	
+	
+	
+	// Set uneven goal activation here
+	set-activation("do-zero-back", 6)
+	set-activation("wander", 1)
+	
+	// Set uneven mood activation here
+	// 20171011 -- NOTE: because we control sji directly, these activations have no effect at all. Disabling them.
+	// set-activation("happy", 4)
+	// set-activation("neutral", 3)
+	// set-activation("sad", 4)
+	
+	
+	// Set activation of process-face operator so high that it can break through mind-wandering
+	set-activation("process-face", 1.5)
+	
+	
+	
+	// Set stronger sji between operators from the wander goal to prolong MW episodes
+	// set-sji("ignore-face-wander-instead", "ignore-responding-wander-instead", 2.5)
+	// set-sji("ignore-face-wander-instead", "done-retrieve-random-memory", 2.5)
+	// set-sji("ignore-face-wander-instead", "process-memory", 2.5)
+	// set-sji("ignore-responding-wander-instead", "ignore-face-wander-instead", 2.5)
+	// set-sji("ignore-responding-wander-instead", "done-retrieve-random-memory", 2.5)
+	// set-sji("ignore-responding-wander-instead", "process-memory", 2.5)
+	// set-sji("done-retrieve-random-memory", "ignore-face-wander-instead", 2.5)
+	// set-sji("done-retrieve-random-memory", "ignore-responding-wander-instead", 2.5)
+	// set-sji("done-retrieve-random-memory", "process-memory", 2.5)
+	// set-sji("process-memory", "ignore-face-wander-instead", 2.5)
+	// set-sji("process-memory", "ignore-responding-wander-instead", 2.5)
+	// set-sji("process-memory", "done-retrieve-random-memory", 2.5)
+	
+	// Attempt at standardizing parameter values. Default inter-operator-assoc is 1
+	// 20171011 -- disabled because RRs are too low. making it equal to on-task should make MW less sticky.
+	// set-sji("ignore-face-wander-instead", "ignore-responding-wander-instead", 1.25)
+// 	set-sji("ignore-face-wander-instead", "done-retrieve-random-memory", 1.25)
+// 	set-sji("ignore-face-wander-instead", "process-memory", 1.25)
+// 	set-sji("ignore-responding-wander-instead", "ignore-face-wander-instead", 1.25)
+// 	set-sji("ignore-responding-wander-instead", "done-retrieve-random-memory", 1.25)
+// 	set-sji("ignore-responding-wander-instead", "process-memory", 1.25)
+// 	set-sji("done-retrieve-random-memory", "ignore-face-wander-instead", 1.25)
+// 	set-sji("done-retrieve-random-memory", "ignore-responding-wander-instead", 1.25)
+// 	set-sji("done-retrieve-random-memory", "process-memory", 1.25)
+// 	set-sji("process-memory", "ignore-face-wander-instead", 1.25)
+// 	set-sji("process-memory", "ignore-responding-wander-instead", 1.25)
+// 	set-sji("process-memory", "done-retrieve-random-memory", 1.25)
+	
+	
+	
+	
+	//////////////////////
+	/// RUN EXPERIMENT ///
+	//////////////////////
+	
+	if (debug) {
+		print()
+		print("Running experiment...")
+	}
+
+	// The experiment consists of 3 blocks
+	blocknum = 0
+	for block in blocks {
+		
+		blocknum = blocknum + 1
+		
+		// Each block starts with the presentation of the target expression (which we extract from the first trial)
+		first-trial = block[0]
+		block-target = first-trial[0]
+				
+		if (debug) {
+			print("______________________________________")
+			print("Starting block", blocknum, ". Target expression: ", block-target)
+			print("______________________________________")
+		}
+		
+		screen("target", block-target)
+		
+		// Show the target until the model presses start
+		run-until-action("press-key")
+		
+		// Each block contains 43 trials
+		trialnum = 0
+		for trial in block {
+			trialnum = trialnum + 1
+			face = trial[1]
+			expression = face[0]
+			image = face[1]
+			response = "none"
+			correct = 0
+			
+			trial-matches-target = 0
+			if (block-target == expression) {
+				trial-matches-target = 1
+			}
+						
+			starttime = time()
+			
+			if (debug) {
+				print("______________________________________")
+				print("Trial", trialnum, "target:", block-target, "current:", expression, time())
+				print("______________________________________")
+			}
+				
+			// show face stimulus					
+			screen("face", image)
+			
+			// The face stimulus is on screen for 2.0 seconds
+			run-until-relative-time-or-action(2.0, "press-key")
+			rt = time() - starttime
+			timeleft = 2.0 - rt
+			if (debug) {
+				print("----- TIME LEFT: ", timeleft)
+			}
+			
+			// Retrieve the model's latest action (which contains its response or lack thereof)
+			action = last-action()
+			if (length(action) > 1) {
+				response = action[1]				
+			}
+			if (debug) {
+				print("Action:", response)
+			}
+			
+			
+			// If the model was done running before the 2 seconds were up, it responded on time
+			if (timeleft > 0) {
+				
+				// Assess the correctness of the response
+				if (response == "same") {
+					if (trial-matches-target) {
+						// correctly said "same"
+						correct = 1
+					}
+				} else {
+					if (!trial-matches-target) {
+						// correctly said "diff"
+						correct = 1
+					}
+				}
+				
+				
+				// Show "done" on the screen so that the model does not respond again
+				screen("face", image, "done")
+				
+				// Run the model for the remainder of the two seconds
+				run-relative-time(timeleft)
+			
+			} else {
+				// The model did not respond within 2 seconds
+				if (debug) {
+					print("No response within 2s time limit.")
+				}
+			}
+			
+			if(debug) {
+				if (correct) {
+					print("Correct!")
+				} else {
+					print("Wrong!")
+				}
+			}
+			
+			set-data-file-field(0, trialnum)
+			set-data-file-field(1, block-target)
+			set-data-file-field(2, expression)
+			set-data-file-field(3, response)
+			set-data-file-field(4, rt)
+			
+			// There is a 0.5 second interval between trials, in which the screen is empty (here fixation)
+			screen("fixation")
+
+			run-relative-time(0.5)
+						
+		}
+	}	
+}
