@@ -12,7 +12,7 @@
 //---------------------------
 
 
-define task emotional-two-back {
+define task emotional-two-back-noMW {
 	
 	task-constants: (target face happy sad neutral same diff start fixation memory face-observation, process-face get-one-back get-two-back respond update)
 	
@@ -141,22 +141,7 @@ define goal do-two-back {
  		diff -> AC2
 		update -> G3
 	}
-	
-	operator retrieval-one-back-failed {
-		"If retrieval of the 1-back face fails, don't respond"
- 		RT1 = error
-		G3 = get-two-back
-		==>
-		update -> G3
-	}
-	
-	operator retrieval-two-back-failed {
-		"If retrieval of the 2-back face fails, don't respond"
-		RT1 = error
-		G3 = respond
-		==>
-		update -> G3
-	}
+
 	
 	
 	
@@ -228,7 +213,7 @@ define script {
 	/// SETUP ///
 	/////////////
 
-	debug = 1 // Set to 1 to get more verbose output
+	verbose = 1 // Set to 1 to get more verbose output (required for parsing batch runs)
 	
 	// Create 46 stimuli of each expression
 	happy-faces = []
@@ -348,7 +333,7 @@ define script {
 	blocks[4] = block5
 	blocks[5] = block6
 	
-	if (debug) {
+	if (verbose) {
 		print("Setting up 2-back task...")
 		print("Randomly created 6 blocks of trials:")
 		blocknum = 1
@@ -440,7 +425,7 @@ define script {
 	/// RUN EXPERIMENT ///
 	//////////////////////
 	
-	if (debug) {
+	if (verbose) {
 		print()
 		print("Running experiment...")
 	}
@@ -451,7 +436,7 @@ define script {
 		
 		blocknum = blocknum + 1
 		
-		if (debug) {
+		if (verbose) {
 			print("______________________________________")
 			print("Starting block", blocknum)
 			print("______________________________________")
@@ -467,7 +452,7 @@ define script {
 			
 			starttime = time()
 			
-			if (debug) {
+			if (verbose) {
 				print("______________________________________")
 				print("Trial", trialnum, "expression:", expression, "time:", time())
 				print("______________________________________")
@@ -480,7 +465,7 @@ define script {
 			run-until-relative-time-or-action(2.0, "press-key")
 			rt = time() - starttime
 			timeleft = 2.0 - rt
-			if (debug) {
+			if (verbose) {
 				print("----- TIME LEFT: ", timeleft)
 			}
 			
@@ -490,7 +475,7 @@ define script {
 			if (length(action) > 1) {
 				response = action[1]				
 			}
-			if (debug) {
+			if (verbose) {
 				print("Action:", response)
 			}
 			
@@ -505,7 +490,7 @@ define script {
 			
 			} else {
 				// The model did not respond within 2 seconds
-				if (debug) {
+				if (verbose) {
 					print("No response within 2s time limit.")
 				}
 			}
