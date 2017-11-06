@@ -91,7 +91,7 @@ define goal do-two-back {
 	operator retrieve-two-back {
 		"Upon successful retrieval of the previous expression, try to retrieve the 2-back expression in the current sequence"
 		RT1 = face-observation
-		RT2 = WM4	// Check that this is the 1-back face
+		// RT2 = WM4	// Check that this is the 1-back face
 		RT4 <> nil	// There is a retrieval cue for the 2-back face
 		G3 = get-two-back
 		==>
@@ -103,7 +103,7 @@ define goal do-two-back {
 	operator cannot-retrieve-two-back {
 		"1-back retrieval was successful, but the 1-back contains no retrieval cue for the 2-back, so don't respond"
 		RT1 = face-observation
-		RT2 = WM4	// Check that this is the 1-back face
+		// RT2 = WM4	// Check that this is the 1-back face
 		RT4 = nil	// There is no retrieval cue for the 2-back face
 		G3 = get-two-back
 		==>
@@ -121,7 +121,7 @@ define goal do-two-back {
 	operator two-back-match-press-same {
 		"The 2-back expression matches the expression of the current face"
 		RT1 = face-observation
-		RT2 <> WM4	// Check that this is not the 1-back face
+		// RT2 <> WM4	// Check that this is not the 1-back face
 		RT3 = WM3
 		G3 = respond
 		==>
@@ -133,7 +133,7 @@ define goal do-two-back {
 	operator two-back-no-match-press-diff {
 		"The 2-back expression does not match the expression of the current face"
 		RT1 = face-observation
-		RT2 <> WM4	// Check that this is not the 1-back face
+		// RT2 <> WM4	// Check that this is not the 1-back face
 		RT3 <> WM3
 		G3 = respond
 		==>
@@ -142,6 +142,7 @@ define goal do-two-back {
 		update -> G3
 	}
 
+	
 	
 	
 	// Updating

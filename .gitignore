@@ -2,5 +2,6 @@
 *.dat
 *.DS_Store
 *.fulltrace
+*.Rhistory
 *.tracedat
 *.spin-tikzDictionary
