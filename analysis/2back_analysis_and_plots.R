@@ -110,7 +110,8 @@ behdat$condition <- as.factor(behdat$condition)
 
 # Filter out non-responses
 allbehdat <- behdat
-behdat <- behdat %>% 
+behdat <- behdat %>%
+  filter(response != "none") %>%
   filter(rt <= 2.0) %>%   # Responses after 2s are too late
   filter(rt > 0) %>%      # Response times of 0s indicate missed trials
   filter(outcome != "none") # Non-response trials at the start of each block
@@ -145,8 +146,8 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "2backAccuracyByCondition.tex"), width = 6, height = 3)
 }
 
-plot <- ggplot(acc.by.condition.all, aes(x = condition, y = acc.mean, group = type, fill = type)) +
-  facet_grid(~stimulus, labeller = labeller(stimulus = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
+plot <- ggplot(acc.by.condition.all, aes(x = stimulus, y = acc.mean, group = type, fill = type)) +
+  facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   # scale_y_continuous(labels = percent) +
   scale_y_continuous() +
@@ -166,7 +167,7 @@ if (use_tikz) {
 ## Response rate
 
 respdat <- allbehdat %>%
-  mutate(ontime = outcome %in% c("correct", "wrong") & rt <= 2.0) %>%
+  mutate(ontime = outcome %in% c("correct", "wrong") & rt <= 2.0 & response != "none") %>%
   group_by(participant, type, condition, stimulus, ontime) %>%
   tally() %>%
   complete(ontime, fill = list(n = 0)) %>%
@@ -189,8 +190,8 @@ respdat.all <- rbind(lg.respdat, data.frame(respdat)) %>%
 if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseRate.tex"), width = 6, height = 3)
 }
-plot <- ggplot(respdat.all, aes(x = condition, y = rr.mean, group = type, fill = type)) +
-  facet_grid(~stimulus, labeller = labeller(stimulus = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
+plot <- ggplot(respdat.all, aes(x = stimulus, y = rr.mean, group = type, fill = type)) +
+  facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=rr.mean-rr.sd, ymax=rr.mean+rr.sd), width=0.2, position = position_dodge(width = 0.9)) +
@@ -224,8 +225,8 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseTime.tex"), width = 6, height = 3)
 }
 
-plot <- ggplot(rtdat.all, aes(x = condition, y = rt.mean, group = type, fill= type)) +
-  facet_grid(~stimulus, labeller = labeller(stimulus = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
+plot <- ggplot(rtdat.all, aes(x = stimulus, y = rt.mean, group = type, fill= type)) +
+  facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=rt.mean-rt.sd, ymax=rt.mean+rt.sd), width=0.2, position = position_dodge(width = 0.9)) +
@@ -265,8 +266,8 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseTimeZ.tex"), width = 6, height = 3)
 }
 
-plot <- ggplot(zrtdat.all, aes(x = condition, y = z.rt.mean, group = type, fill= type)) +
-  facet_grid(~stimulus, labeller = labeller(stimulus = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
+plot <- ggplot(zrtdat.all, aes(x = stimulus, y = z.rt.mean, group = type, fill= type)) +
+  facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=z.rt.mean-z.rt.sd, ymax=z.rt.mean+z.rt.sd), width=0.2, position = position_dodge(width = 0.9)) +
