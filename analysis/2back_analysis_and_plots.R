@@ -42,7 +42,7 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir <- paste0(data_path, "20171106")
+file_dir <- paste0(data_path, "20171114")
 
 beh_files <- tail(list.files(path = file_dir, pattern="beh.csv", full.names = TRUE),2)
 
@@ -52,7 +52,7 @@ for (i in 1:length(beh_files)) {
 }
 
 behdat <- behdatfull %>%
-  filter(task_rep == 10) %>% # select only the last run
+  # filter(task_rep == 10) %>% # select only the last run
   select(-task_rep)
 
 
@@ -278,3 +278,58 @@ print(plot)
 if (use_tikz) {
   dev.off()
 }
+
+
+
+
+
+
+## How pervasive is mind-wandering?
+
+op_files <- tail(list.files(path = file_dir, pattern="ops.csv", full.names = TRUE),2)
+
+opdatfull <- data.frame()
+for (i in 1:length(op_files)) {
+  opdatfull <- rbind(opdatfull, read.csv(op_files[i], header=TRUE,sep=","))
+}
+
+opdat <- opdatfull %>%
+  # filter(task_rep == 10) %>% # select only the last run
+  select(-task_rep)
+
+
+## For now let's label one model as the control model and the other as the depressed model
+## NOTE: they are actually the model without mind-wandering (control) and the first model with MW (depressed)
+
+opdat <- opdat %>%
+  mutate(type = ifelse(model == levels(model)[1], "control model", "depressed model")) %>%
+  mutate(on_task = as.logical(on_task)) %>%
+  select(-model)
+
+
+
+
+# When do we consider a trial to be "on-task"?
+# Let's call any trial in which more than a certain percentage of operators are MW operators a mind-wandering trial for now.
+
+mwfreq <- opdat %>%
+  group_by(type, participant, trial, on_task) %>%
+  count(on_task) %>%
+  ungroup() %>%
+  complete(type, participant, trial, on_task, fill = list(n = 0)) %>%
+  group_by(type, participant, trial) %>%
+  mutate(freq = n/sum(n)) %>%
+  ungroup() %>%
+  filter(on_task == FALSE)
+  
+
+mwfreq %>%
+  summarise(mw.mean = mean(freq), mw.sd = sd(freq))
+
+# So, on average 72% of each trial is spent on mind-wandering!
+
+mwfreq %>%
+  mutate(mwtrial = freq >= 0.5) %>%
+  count(mwtrial)
+
+# In 775 out of 990 trials (78%) more than 50% of operators were MW operators.

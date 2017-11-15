@@ -1,3 +1,4 @@
+*.brain
 *.csv
 *.dat
 *.DS_Store
