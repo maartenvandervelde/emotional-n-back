@@ -200,7 +200,7 @@ define goal wander {
 		nil -> G3
 	}
 	
-	operator ignore-responding-wander-instead {
+	operator ignore-expression-wander-instead {
 		"Start mind-wandering when a facial expression has been retrieved"
 		RT1 = face-expression
 		==>
@@ -227,11 +227,42 @@ define goal wander {
 		nil -> G3
 	}
 	
-	operator process-memory {
-		"When a random memory has been retrieved, place it in WM"
+	// operator process-memory {
+	// 	"When a random memory has been retrieved, place it in WM"
+	// 	RT1 = memory
+	// 	==>
+	// 	RT4 -> WM1
+	// }
+	
+	operator process-memory-retrieve-next {
+		"When a random memory has been retrieved, place it in WM and make a new retrieval request"
 		RT1 = memory
 		==>
 		RT4 -> WM1
+		memory -> RT1
+		self -> RT2
+	}
+	
+	operator process-memory-auto-respond-same {
+		"When a random memory has been retrieved, place it in WM and make an automatic 'same' response"
+		RT1 = memory
+		V1 = face
+		V3 = nil // Ensure that no response has been made yet
+		==>
+		RT4 -> WM1
+ 		press-key -> AC1
+ 		same -> AC2
+	}
+	
+	operator process-memory-auto-respond-diff {
+		"When a random memory has been retrieved, place it in WM and make an automatic 'diff' response"
+		RT1 = memory
+		V1 = face
+		V3 = nil // Ensure that no response has been made yet
+		==>
+		RT4 -> WM1
+ 		press-key -> AC1
+ 		diff -> AC2
 	}
 }
 
