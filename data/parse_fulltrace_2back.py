@@ -15,7 +15,7 @@ task_operators = [
     "retrieve-one-back",
     "failed-to-retrieve-one-back",
     "retrieve-two-back",
-    "cannot-retrieve-two-back",
+    "no-two-back",
     "failed-to-retrieve-two-back",
     "two-back-match-press-same",
     "two-back-no-match-press-diff",

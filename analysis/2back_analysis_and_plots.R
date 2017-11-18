@@ -17,7 +17,7 @@ library(forcats)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = TRUE # set to TRUE to save .tex versions of the plots
+use_tikz = FALSE # set to TRUE to save .tex versions of the plots
 
 data_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/data/"
 fig_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/fig/"
@@ -42,9 +42,12 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir <- paste0(data_path, "20171114")
+file_dir_1 <- paste0(data_path, "20171118")
+file_dir_2 <- paste0(data_path, "20171118b")
 
-beh_files <- tail(list.files(path = file_dir, pattern="beh.csv", full.names = TRUE),2)
+beh_files <- c()
+beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
+beh_files[2] <- tail(list.files(path = file_dir_2, pattern="beh.csv", full.names = TRUE),1)
 
 behdatfull <- data.frame()
 for (i in 1:length(beh_files)) {
@@ -57,7 +60,7 @@ behdat <- behdatfull %>%
 
 
 ## For now let's label one model as the control model and the other as the depressed model
-## NOTE: they are actually the model without mind-wandering (control) and the first model with MW (depressed)
+## NOTE: they are actually the old and new model, respectively
 
 behdat <- behdat %>%
   mutate(type = ifelse(model == levels(model)[1], "control model", "depressed model")) %>%
@@ -286,7 +289,9 @@ if (use_tikz) {
 
 ## How pervasive is mind-wandering?
 
-op_files <- tail(list.files(path = file_dir, pattern="ops.csv", full.names = TRUE),2)
+op_files <- c()
+op_files[1] <- tail(list.files(path = file_dir_1, pattern="ops.csv", full.names = TRUE),1)
+op_files[2] <- tail(list.files(path = file_dir_2, pattern="ops.csv", full.names = TRUE),1)
 
 opdatfull <- data.frame()
 for (i in 1:length(op_files)) {
@@ -324,12 +329,201 @@ mwfreq <- opdat %>%
   
 
 mwfreq %>%
+  group_by(type) %>%
   summarise(mw.mean = mean(freq), mw.sd = sd(freq))
 
-# So, on average 72% of each trial is spent on mind-wandering!
 
 mwfreq %>%
   mutate(mwtrial = freq >= 0.5) %>%
+  group_by(type) %>%
   count(mwtrial)
 
-# In 775 out of 990 trials (78%) more than 50% of operators were MW operators.
+
+
+
+## Operator use
+
+opdatall <- opdatfull %>%
+  select(-task_rep) %>%
+  mutate(on_task = as.logical(on_task), success = as.logical(success))
+
+# For now we just select two models and label one depressed and the other healthy
+opdatall <- opdatall %>%
+  mutate(group = ifelse(model == levels(model)[1], "control model", "depressed model")) %>%
+  select(-model) %>%
+  mutate(train = 0, span = 0)
+
+
+# How often was each operator used?
+opfreq <- opdatall %>%
+  filter(success == TRUE) %>%
+  group_by(group, participant, operator, on_task) %>%
+  count() %>%
+  group_by(group, participant) %>%
+  mutate(freq = n/sum(n)) %>%
+  group_by(group, operator, on_task) %>%
+  summarise(freq.mean = mean(freq), freq.sd = sd(freq))
+
+
+
+
+ggplot(opfreq, aes(x = operator, y = freq.mean, group = group, fill= group)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  coord_flip() +
+  facet_grid(on_task ~ ., scales = "free", switch = "both", as.table = FALSE, labeller = labeller(on_task = c("TRUE" = "Task operators", "FALSE" = "Mind-wandering operators"))) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=freq.mean-freq.sd, ymax=freq.mean+freq.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Operator", y = "Frequency of use") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  fillScale
+
+
+## How long are thought trains?
+# Continuous thought trains are unbroken sequences of successful off-task operators
+# In the same vein, we can define spans of attention as unbroken sequences of successful on-task operators 
+
+train <- 0
+in_train <- FALSE
+
+span <- 0
+on_task <- FALSE
+
+
+for (i in 1:(nrow(opdatall) - 1)) {
+  
+  # Go over items in sets of two
+  this_op <- opdatall[i,]
+  next_op <- opdatall[i+1,]
+  if (this_op$participant == next_op$participant && this_op$on_task == FALSE && next_op$on_task == FALSE && this_op$success == TRUE && next_op$success == TRUE) {
+    
+    # The pair of operators constitutes a thought train
+    
+    if (!in_train) {
+      in_train <- TRUE
+      train <- train + 1
+    }
+    
+    opdatall[i,]$train <- train
+    opdatall[i+1,]$train <- train
+    
+  } else {
+    in_train <- FALSE
+  }
+  
+  if (this_op$participant == next_op$participant && this_op$on_task == TRUE && next_op$on_task == TRUE && this_op$success == TRUE && next_op$success == TRUE) {
+      
+    # The pair of operators constitutes an "attention span"
+    
+    if (!on_task) {
+      on_task <- TRUE
+      span <- span + 1
+    }
+    
+    opdatall[i,]$span <- span
+    opdatall[i+1,]$span <- span
+    
+  } else {
+    on_task <- FALSE
+  }
+  
+}
+
+
+# Thought train length
+
+mw_train_length <- opdatall %>%
+  filter(train != 0) %>%
+  group_by(participant, group, train) %>%
+  tally() %>%
+  summarise(length = mean(n)) %>%
+  group_by(group) %>%
+  summarise(length.mean = mean(length), length.sd = sd(length))
+
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backThoughtTrainLength.tex"), width = 6, height = 3)
+}
+
+plot <- ggplot(mw_train_length, aes(x = group, y = length.mean, fill= group)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=length.mean-length.sd, ymax=length.mean+length.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Group", y = "Thought train length") +
+  fillScale +
+  guides(fill = FALSE)
+
+print(plot)
+if (use_tikz) {
+  dev.off()
+}
+
+
+# Span of attention length
+
+attention_span_length <- opdatall %>%
+  filter(span != 0) %>%
+  group_by(participant, group, span) %>%
+  tally() %>%
+  summarise(length = mean(n)) %>%
+  group_by(group) %>%
+  summarise(length.mean = mean(length), length.sd = sd(length))
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backAttentionSpanLength.tex"), width = 6, height = 3)
+}
+
+plot <- ggplot(attention_span_length, aes(x = group, y = length.mean, fill= group)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=length.mean-length.sd, ymax=length.mean+length.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Group", y = "Attention span length") +
+  fillScale +
+  guides(fill = FALSE)
+
+print(plot)
+if (use_tikz) {
+  dev.off()
+}
+
+
+
+## Let's look specifically at how responses were made.
+## What proportion of responses was made automatically?
+
+opdatall %>%
+  filter(operator %in% c("two-back-match-press-same", "two-back-no-match-press-diff", "process-memory-auto-respond-same", "process-memory-auto-respond-diff")) %>%
+  filter(success == TRUE) %>%
+  mutate(automatic = !on_task) %>%
+  group_by(group, automatic) %>%
+  count() %>%
+  group_by(group) %>%
+  mutate(freq = n/sum(n))
+
+
+
+## Conditional probabilities of operators
+
+# What is the chance of selecting any given operator at the start of a trial?
+
+first_ops <- opdatall %>%
+  group_by(group, participant, trial) %>%
+  slice(1) %>%
+  group_by(group, participant, on_task, operator) %>%
+  tally() %>%
+  mutate(p = n/sum(n)) %>%
+  group_by(group, operator, on_task) %>%
+  summarise(p.mean = mean(p), p.sd = sd(p))
+
+
+ggplot(first_ops, aes(x = operator, y = p.mean, group = group, fill= group)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  coord_flip() +
+  facet_grid(on_task ~ ., scales = "free", switch = "both", as.table = FALSE, labeller = labeller(on_task = c("TRUE" = "Task operators", "FALSE" = "Mind-wandering operators"))) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=p.mean-p.sd, ymax=p.mean+p.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Operator", y = "Probability of use at trial start") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  fillScale
+
+
+

@@ -22,6 +22,9 @@ define task emotional-two-back {
 	default-activation: 1.0 // lower bound on baselevel activation (default: none)
 	imaginal-activation: 0.25 // spreading activation from WM (default 0.0). A value of 0.25 gives it equal strength to goal buffer spreading
 	
+	
+	default-inter-operator-assoc: 2.0 // sji between operators belonging to the same goal (default: 1.0). Higher == "stickier" goals.
+	
 	// retrieval-reinforces: t // every time a fact is retrieved from DM, it receives an extra reference (default: nil -- but t in ACT-R)
 	
 	pm: t // partial matching		
@@ -42,13 +45,13 @@ define goal do-two-back {
  		==>
  		face-expression -> RT1
  		V2 -> RT3
-		process-face -> G3
+		process-stimulus -> G3
  	}
 	
 	operator recognise-face {
 		"The expression of the current face has been retrieved. Place it in WM."
 		RT1 = face-expression
-		G3 = process-face
+		G3 = process-stimulus
 		==>
 		face-observation -> WM1
 		ASSIGN_NEW_CONTEXT_LABEL -> WM2
@@ -100,7 +103,7 @@ define goal do-two-back {
 		respond -> G3
 	}
 	
-	operator cannot-retrieve-two-back {
+	operator no-two-back {
 		"1-back retrieval was successful, but the 1-back contains no retrieval cue for the 2-back, so don't respond"
 		RT1 = face-observation
 		// RT2 = WM4	// Check that this is the 1-back face
@@ -479,22 +482,39 @@ define script {
 	
 	
 	
-	// Set goal activation
-	set-activation("do-two-back", 5)
+	// Set uneven goal activation here
+	set-activation("do-two-back", 6)
 	set-activation("wander", 1)
 	
-	// Set mood activation
-	set-activation("happy", 3)
-	set-activation("neutral", 3)
-	set-activation("sad", 3)
+	// Set uneven mood activation here
+	// 20171011 -- NOTE: because we control sji directly, these activations have no effect at all. Disabling them.
+	// set-activation("happy", 4)
+	// set-activation("neutral", 3)
+	// set-activation("sad", 4)
+
 	
 	
 	
 	
 	// Set activation of process-face operator so high that it can break through mind-wandering
-	set-activation("process-face", 1.5)
+	// set-activation("process-face", 3.0)
 	
+	// TEST 2017-11-18: set activation of all task-related operators (including process-face) higher relative to MW operators
+	task-operator-activation = 1.5
 	
+	set-activation("process-face", task-operator-activation)
+	set-activation("recognise-face", task-operator-activation)
+	set-activation("no-one-back", task-operator-activation)
+	set-activation("retrieve-one-back", task-operator-activation)
+	set-activation("failed-to-retrieve-one-back", task-operator-activation)
+	set-activation("retrieve-two-back", task-operator-activation)
+	set-activation("no-two-back", task-operator-activation)
+	set-activation("failed-to-retrieve-two-back", task-operator-activation)
+	set-activation("two-back-match-press-same", task-operator-activation)
+	set-activation("two-back-no-match-press-diff", task-operator-activation)
+	set-activation("update-one-back-cue", task-operator-activation)
+	set-activation("rehearse-one-back", task-operator-activation)
+	set-activation("rehearse-two-back", task-operator-activation)
 	
 	
 	//////////////////////
