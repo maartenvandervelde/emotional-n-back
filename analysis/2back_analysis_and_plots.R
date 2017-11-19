@@ -17,7 +17,7 @@ library(forcats)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = FALSE # set to TRUE to save .tex versions of the plots
+use_tikz = TRUE # set to TRUE to save .tex versions of the plots
 
 data_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/data/"
 fig_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/fig/"
@@ -42,8 +42,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171118")
-file_dir_2 <- paste0(data_path, "20171118b")
+file_dir_1 <- paste0(data_path, "20171119")
+file_dir_2 <- paste0(data_path, "20171119b")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -328,15 +328,18 @@ mwfreq <- opdat %>%
   filter(on_task == FALSE)
   
 
+# Percentage of operators from mind-wander goal
 mwfreq %>%
   group_by(type) %>%
   summarise(mw.mean = mean(freq), mw.sd = sd(freq))
 
 
+# Percentage of trials in which mind-wandering operators dominate (at least 50%)
 mwfreq %>%
   mutate(mwtrial = freq >= 0.5) %>%
   group_by(type) %>%
-  count(mwtrial)
+  count(mwtrial) %>%
+  mutate(freq = nn/sum(nn))
 
 
 
@@ -498,6 +501,31 @@ opdatall %>%
   count() %>%
   group_by(group) %>%
   mutate(freq = n/sum(n))
+
+
+
+
+## Prior probabilities of operators
+
+# How likely is each operator to be used regardless of context?
+
+opfreq <-opdatall %>%
+  group_by(group, participant, on_task, operator) %>%
+  tally() %>%
+  group_by(group, participant) %>%
+  mutate(freq = n/sum(n)) %>%
+  group_by(group, on_task, operator) %>%
+  summarise(freq.mean = mean(freq), freq.sd = sd(freq))
+
+ggplot(opfreq, aes(x = operator, y = freq.mean, group = group, fill= group)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  coord_flip() +
+  facet_grid(on_task ~ ., scales = "free", switch = "both", as.table = FALSE, labeller = labeller(on_task = c("TRUE" = "Task operators", "FALSE" = "Mind-wandering operators"))) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=freq.mean-freq.sd, ymax=freq.mean+freq.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Operator", y = "Probability of use") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  fillScale
 
 
 

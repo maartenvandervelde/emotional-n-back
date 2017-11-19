@@ -23,7 +23,7 @@ define task emotional-two-back {
 	imaginal-activation: 0.25 // spreading activation from WM (default 0.0). A value of 0.25 gives it equal strength to goal buffer spreading
 	
 	
-	default-inter-operator-assoc: 2.0 // sji between operators belonging to the same goal (default: 1.0). Higher == "stickier" goals.
+	default-inter-operator-assoc: 5.0 // sji between operators belonging to the same goal (default: 1.0). Higher == "stickier" goals.
 	
 	// retrieval-reinforces: t // every time a fact is retrieved from DM, it receives an extra reference (default: nil -- but t in ACT-R)
 	
@@ -500,7 +500,7 @@ define script {
 	// set-activation("process-face", 3.0)
 	
 	// TEST 2017-11-18: set activation of all task-related operators (including process-face) higher relative to MW operators
-	task-operator-activation = 1.5
+	task-operator-activation = 3.0
 	
 	set-activation("process-face", task-operator-activation)
 	set-activation("recognise-face", task-operator-activation)
