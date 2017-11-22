@@ -500,7 +500,7 @@ define script {
 	// set-activation("process-face", 3.0)
 	
 	// TEST 2017-11-18: set activation of all task-related operators (including process-face) higher relative to MW operators
-	task-operator-activation = 3.0
+	task-operator-activation = 4.0
 	
 	set-activation("process-face", task-operator-activation)
 	set-activation("recognise-face", task-operator-activation)
@@ -517,6 +517,58 @@ define script {
 	set-activation("rehearse-two-back", task-operator-activation)
 	
 	
+	// Increase inter-operator-associations between mind-wandering operators
+	//mw-operator-assoc = 5.0
+	//set-sji("ignore-face-wander-instead","ignore-expression-wander-instead", mw-operator-assoc)
+	//set-sji("ignore-face-wander-instead","ignore-nback-wander-instead", mw-operator-assoc)
+	//set-sji("ignore-face-wander-instead","done-retrieve-random-memory", mw-operator-assoc)
+	//set-sji("ignore-face-wander-instead","process-memory-retrieve-next", mw-operator-assoc)
+	//set-sji("ignore-face-wander-instead","process-memory-auto-respond-same", mw-operator-assoc)
+	//set-sji("ignore-face-wander-instead","process-memory-auto-respond-diff", mw-operator-assoc)
+    //
+	//set-sji("ignore-expression-wander-instead","ignore-face-wander-instead", mw-operator-assoc)
+	//set-sji("ignore-expression-wander-instead","ignore-nback-wander-instead", mw-operator-assoc)
+	//set-sji("ignore-expression-wander-instead","done-retrieve-random-memory", mw-operator-assoc)
+	//set-sji("ignore-expression-wander-instead","process-memory-retrieve-next", mw-operator-assoc)
+	//set-sji("ignore-expression-wander-instead","process-memory-auto-respond-same", mw-operator-assoc)
+	//set-sji("ignore-expression-wander-instead","process-memory-auto-respond-diff", mw-operator-assoc)
+    //
+	//set-sji("ignore-nback-wander-instead","ignore-face-wander-instead", mw-operator-assoc)
+	//set-sji("ignore-nback-wander-instead","ignore-expression-wander-instead", mw-operator-assoc)
+	//set-sji("ignore-nback-wander-instead","done-retrieve-random-memory", mw-operator-assoc)
+	//set-sji("ignore-nback-wander-instead","process-memory-retrieve-next", mw-operator-assoc)
+	//set-sji("ignore-nback-wander-instead","process-memory-auto-respond-same", mw-operator-assoc)
+	//set-sji("ignore-nback-wander-instead","process-memory-auto-respond-diff", mw-operator-assoc)
+	//
+	//set-sji("done-retrieve-random-memory","ignore-face-wander-instead", mw-operator-assoc)
+	//set-sji("done-retrieve-random-memory","ignore-expression-wander-instead", mw-operator-assoc)
+	//set-sji("done-retrieve-random-memory","ignore-nback-wander-instead", mw-operator-assoc)
+	//set-sji("done-retrieve-random-memory","process-memory-retrieve-next", mw-operator-assoc)
+	//set-sji("done-retrieve-random-memory","process-memory-auto-respond-same", mw-operator-assoc)
+	//set-sji("done-retrieve-random-memory","process-memory-auto-respond-diff", mw-operator-assoc)
+	//
+	//set-sji("process-memory-retrieve-next","ignore-face-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-retrieve-next","ignore-expression-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-retrieve-next","ignore-nback-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-retrieve-next","done-retrieve-random-memory", mw-operator-assoc)
+	//set-sji("process-memory-retrieve-next","process-memory-auto-respond-same", mw-operator-assoc)
+	//set-sji("process-memory-retrieve-next","process-memory-auto-respond-diff", mw-operator-assoc)
+    //
+	//set-sji("process-memory-auto-respond-same","ignore-face-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-same","ignore-expression-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-same","ignore-nback-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-same","done-retrieve-random-memory", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-same","process-memory-retrieve-next", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-same","process-memory-auto-respond-diff", mw-operator-assoc)
+    //
+	//set-sji("process-memory-auto-respond-diff","ignore-face-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-diff","ignore-expression-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-diff","ignore-nback-wander-instead", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-diff","done-retrieve-random-memory", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-diff","process-memory-retrieve-next", mw-operator-assoc)
+	//set-sji("process-memory-auto-respond-diff","process-memory-auto-respond-same", mw-operator-assoc)
+
+
 	//////////////////////
 	/// RUN EXPERIMENT ///
 	//////////////////////

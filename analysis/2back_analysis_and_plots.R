@@ -12,6 +12,7 @@
 rm(list=ls(all=T))
 
 library(tidyverse)
+library(magrittr)
 library(scales)
 library(forcats)
 library(tikzDevice)
@@ -42,8 +43,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171119")
-file_dir_2 <- paste0(data_path, "20171119b")
+file_dir_1 <- paste0(data_path, "20171119d")
+file_dir_2 <- paste0(data_path, "20171120b")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -329,13 +330,13 @@ mwfreq <- opdat %>%
   
 
 # Percentage of operators from mind-wander goal
-mwfreq %>%
+mw_share_of_ops <- mwfreq %>%
   group_by(type) %>%
   summarise(mw.mean = mean(freq), mw.sd = sd(freq))
 
 
 # Percentage of trials in which mind-wandering operators dominate (at least 50%)
-mwfreq %>%
+mw_dominant <- mwfreq %>%
   mutate(mwtrial = freq >= 0.5) %>%
   group_by(type) %>%
   count(mwtrial) %>%
@@ -493,7 +494,7 @@ if (use_tikz) {
 ## Let's look specifically at how responses were made.
 ## What proportion of responses was made automatically?
 
-opdatall %>%
+auto_responses <- opdatall %>%
   filter(operator %in% c("two-back-match-press-same", "two-back-no-match-press-diff", "process-memory-auto-respond-same", "process-memory-auto-respond-diff")) %>%
   filter(success == TRUE) %>%
   mutate(automatic = !on_task) %>%
@@ -554,4 +555,54 @@ ggplot(first_ops, aes(x = operator, y = p.mean, group = group, fill= group)) +
   fillScale
 
 
+
+## What is the chance of selecting an on-task/off-task operator given the current operator?
+
+## Transition probabilities
+calc.trans.probs <- function(dat) {
+  
+  on_task <- unique(dat$on_task)
+  
+  p <- matrix(nrow = length(on_task), ncol = length(on_task), 0)
+  row.names(p) <- on_task
+  colnames(p) <- on_task
+  
+  for (i in 1:(nrow(dat) - 1)) {
+    # Go over items in sets of two
+    # If they're operators from the same participant, count the transition
+    if (dat$participant[i] == dat$participant[i+1] && dat$group[i] == dat$group[i+1]) {
+      p[dat$on_task[i], dat$on_task[i+1]] <- p[dat$on_task[i], dat$on_task[i+1]] + 1
+    }
+  }
+  
+  # Convert counts to probability
+  p <- p / rowSums(p)
+
+  return(p)
+}
+
+
+opdatall %>%
+  mutate(on_task = if_else(on_task, "on task", "wandering")) %>%
+  filter(group=="control model") %>% 
+  calc.trans.probs()
+
+opdatall %>%
+  mutate(on_task = if_else(on_task, "on task", "wandering")) %>%
+  filter(group=="depressed model") %>% 
+  calc.trans.probs()
+
+
+
+### Summarise the important metrics of comparison
+accdat %>% group_by(type) %>% summarise(mean(acc.mean))
+respdat %>% group_by(type) %>% summarise(mean(rr.mean))
+rtdat %>% group_by(type) %>% summarise(mean(rt.mean))
+
+auto_responses
+
+mw_share_of_ops
+mw_dominant
+mw_train_length
+attention_span_length
 
