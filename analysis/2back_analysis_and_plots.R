@@ -13,8 +13,10 @@ rm(list=ls(all=T))
 
 library(tidyverse)
 library(magrittr)
+library(stringr)
 library(scales)
 library(forcats)
+library(qgraph)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
@@ -559,19 +561,21 @@ ggplot(first_ops, aes(x = operator, y = p.mean, group = group, fill= group)) +
 ## What is the chance of selecting an on-task/off-task operator given the current operator?
 
 ## Transition probabilities
-calc.trans.probs <- function(dat) {
+calc.trans.probs <- function(dat, variable) {
   
-  on_task <- unique(dat$on_task)
+  dat <- droplevels(dat)
   
-  p <- matrix(nrow = length(on_task), ncol = length(on_task), 0)
-  row.names(p) <- on_task
-  colnames(p) <- on_task
+  vals <- sort(unique(dat[[variable]]))
+  
+  p <- matrix(nrow = length(vals), ncol = length(vals), 0)
+  row.names(p) <- vals
+  colnames(p) <- vals
   
   for (i in 1:(nrow(dat) - 1)) {
     # Go over items in sets of two
     # If they're operators from the same participant, count the transition
-    if (dat$participant[i] == dat$participant[i+1] && dat$group[i] == dat$group[i+1]) {
-      p[dat$on_task[i], dat$on_task[i+1]] <- p[dat$on_task[i], dat$on_task[i+1]] + 1
+    if (dat$participant[i] == dat$participant[i+1] & dat$group[i] == dat$group[i+1]) {
+      p[dat[[variable]][i], dat[[variable]][i+1]] <- p[dat[[variable]][i], dat[[variable]][i+1]] + 1
     }
   }
   
@@ -581,16 +585,60 @@ calc.trans.probs <- function(dat) {
   return(p)
 }
 
+plot.trans.probs <- function(p, style = "circular") {
+  # Plot transitions in a style similar to Wigman et al. (2015)
+  
+  on_task = which(!str_detect(labels(p)[[1]], "wander|memory"))
+  wandering = which(str_detect(labels(p)[[1]], "wander|memory"))
+  groups = list("on task" = on_task, "wandering" = wandering)
+  
+  p[round(p,2) == 0] = NA # Remove zero-probabilities from plot
+  
+  qgraph(
+    p, # transition probabilities, rounded to two decimal places
+    groups = groups,
+    layout = style,
+    layout.control = 0.9,
+    vsize = 5,
+    esize = 5,
+    #mar = c(8,7,8,7), # Margin size (bottom, left, top, right)
+    labels = labels(p)[[1]],
+    label.scale = FALSE,
+    curveAll = TRUE,
+    curveDefault = 1.05,
+    edge.labels = TRUE, # Show numbers on arrows
+    edge.label.cex = 1, # Size of edge labels
+    border.width = 2, # Width of the borders of the nodes
+    colFactor = 0.15, # controls degree of transparancy
+    asize = 2, # Size of arrow heads
+    maximum = 0.2 # Maximum transition probability, used for scaling
+    #filetype = "pdf", # set to "pdf" or "tex" for standalone files
+    #filename = paste0(gsub(" ", "_", graph_title))
+  )
+}
 
-opdatall %>%
-  mutate(on_task = if_else(on_task, "on task", "wandering")) %>%
-  filter(group=="control model") %>% 
-  calc.trans.probs()
 
-opdatall %>%
+
+opdatcontrol <- opdatall %>%
   mutate(on_task = if_else(on_task, "on task", "wandering")) %>%
-  filter(group=="depressed model") %>% 
-  calc.trans.probs()
+  filter(group == "control model", success == TRUE)
+
+opdatdepr <- opdatall %>%
+  mutate(on_task = if_else(on_task, "on task", "wandering")) %>%
+  filter(group =="depressed model", success == TRUE) 
+
+calc.trans.probs(opdatcontrol, "on_task") %>%
+  plot.trans.probs()
+
+calc.trans.probs(opdatcontrol, "operator") %>%
+  plot.trans.probs(style = "spring")
+
+
+calc.trans.probs(opdatdepr, "on_task") %>%
+  plot.trans.probs()
+
+calc.trans.probs(opdatdepr, "operator") %>%
+  plot.trans.probs()
 
 
 
