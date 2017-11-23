@@ -27,6 +27,8 @@ define task emotional-two-back {
 	
 	// retrieval-reinforces: t // every time a fact is retrieved from DM, it receives an extra reference (default: nil -- but t in ACT-R)
 	
+	goal-chunk-spreads: t // spreading activation from G is equal to the activation of each goal.
+	
 	pm: t // partial matching		
 }
 
@@ -185,6 +187,26 @@ define goal do-two-back {
 		face-observation -> RT1
 		RT4 -> RT2
 	}
+	
+	
+	// Focus on fixation
+	
+	operator focus-on-fixation {
+		"Focus on the fixation cross in preparation for the next stimulus"
+		V1 = fixation
+		==>
+		focus -> AC1
+		nil -> G3
+	}
+	
+	
+	
+	// Return to task from mind-wandering, or focus on the task to keep from mind-wandering
+	operator focus-on-task {
+		G3 = nil
+		==>
+		focus -> AC1
+	}
 
 }
 
@@ -281,6 +303,12 @@ define action press-key {
   output: Pressing
 }
 
+define action focus {
+  latency: 0.3
+  noise: 0.1
+  distribution: uniform
+  output: Focussing
+}
 
 define script {	
 	
@@ -483,7 +511,7 @@ define script {
 	
 	
 	// Set uneven goal activation here
-	set-activation("do-two-back", 6)
+	set-activation("do-two-back", 2)
 	set-activation("wander", 1)
 	
 	// Set uneven mood activation here
@@ -500,7 +528,7 @@ define script {
 	// set-activation("process-face", 3.0)
 	
 	// TEST 2017-11-18: set activation of all task-related operators (including process-face) higher relative to MW operators
-	task-operator-activation = 4.0
+	task-operator-activation = 3.0
 	
 	set-activation("process-face", task-operator-activation)
 	set-activation("recognise-face", task-operator-activation)
