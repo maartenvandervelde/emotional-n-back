@@ -25,10 +25,8 @@ define task emotional-two-back {
 	
 	default-inter-operator-assoc: 5.0 // sji between operators belonging to the same goal (default: 1.0). Higher == "stickier" goals.
 	
-	// retrieval-reinforces: t // every time a fact is retrieved from DM, it receives an extra reference (default: nil -- but t in ACT-R)
-	
-	goal-chunk-spreads: t // spreading activation from G is equal to the activation of each goal.
-	
+	retrieval-reinforces: t // every time a fact is retrieved from DM, it receives an extra reference (default: nil -- but t in ACT-R)
+		
 	pm: t // partial matching		
 }
 
@@ -528,7 +526,7 @@ define script {
 	// set-activation("process-face", 3.0)
 	
 	// TEST 2017-11-18: set activation of all task-related operators (including process-face) higher relative to MW operators
-	task-operator-activation = 3.0
+	task-operator-activation = 1.5
 	
 	set-activation("process-face", task-operator-activation)
 	set-activation("recognise-face", task-operator-activation)
