@@ -21,7 +21,9 @@ task_operators = [
     "two-back-no-match-press-diff",
 	"update-one-back-cue",
 	"rehearse-one-back",
-	"rehearse-two-back"
+	"rehearse-two-back",
+	"focus-on-fixation",
+	"focus-on-task"
 ]
 
 def read_files_from_directory(path):
