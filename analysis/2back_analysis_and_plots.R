@@ -45,8 +45,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171125b")
-file_dir_2 <- paste0(data_path, "20171126")
+file_dir_1 <- paste0(data_path, "20171126")
+file_dir_2 <- paste0(data_path, "20171126d")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -285,6 +285,9 @@ if (use_tikz) {
 
 
 
+########################
+###  OPERATOR DATA   ###
+########################
 
 
 ## How pervasive is mind-wandering?
@@ -577,7 +580,7 @@ calc.trans.probs <- function(dat, variable) {
   
   for (i in 1:(nrow(dat) - 1)) {
     # Go over items in sets of two
-    # If they're operators from the same participant, count the transition
+    # If they're from the same participant, count the transition
     if (dat$participant[i] == dat$participant[i+1] & dat$group[i] == dat$group[i+1]) {
       p[dat[[variable]][i], dat[[variable]][i+1]] <- p[dat[[variable]][i], dat[[variable]][i+1]] + 1
     }
@@ -589,8 +592,8 @@ calc.trans.probs <- function(dat, variable) {
   return(p)
 }
 
-plot.trans.probs <- function(p, style = "circular") {
-  # Plot transitions in a style similar to Wigman et al. (2015)
+plot.trans.probs.ops <- function(p, style = "circular") {
+  # Plot transition probabilities between operators
   
   on_task = which(!str_detect(labels(p)[[1]], "wander|memory"))
   wandering = which(str_detect(labels(p)[[1]], "wander|memory"))
@@ -632,18 +635,140 @@ opdatdepr <- opdatall %>%
   filter(group =="depressed model", success == TRUE) 
 
 calc.trans.probs(opdatcontrol, "on_task") %>%
-  plot.trans.probs()
+  plot.trans.probs.ops()
 
 calc.trans.probs(opdatcontrol, "operator") %>%
-  plot.trans.probs(style = "spring")
+  plot.trans.probs.ops(style = "spring")
 
 
 calc.trans.probs(opdatdepr, "on_task") %>%
-  plot.trans.probs()
+  plot.trans.probs.ops()
 
 calc.trans.probs(opdatdepr, "operator") %>%
-  plot.trans.probs()
+  plot.trans.probs.ops()
 
+
+
+
+
+########################
+###  RETRIEVAL DATA  ###
+########################
+
+
+
+mem_files <- c()
+mem_files[1] <- tail(list.files(path = file_dir_1, pattern="mems.csv", full.names = TRUE),1)
+mem_files[2] <- tail(list.files(path = file_dir_2, pattern="mems.csv", full.names = TRUE),1)
+
+memdatfull <- data.frame()
+for (i in 1:length(mem_files)) {
+  memdatfull <- rbind(memdatfull, read.csv(mem_files[i], header=TRUE,sep=","))
+}
+
+memdat <- memdatfull %>%
+  select(-task_rep)
+
+
+## For now let's label one model as the control model and the other as the depressed model
+## NOTE: they are actually two different iterations of the same model 
+
+memdat <- memdat %>%
+  mutate(group = ifelse(model == levels(model)[1], "control model", "depressed model")) %>%
+  select(-model)
+
+
+
+mems <- memdat %>% 
+  filter(type == "memory") %>%
+  droplevels()
+
+get.valence <- function(memory) {
+  return(gsub("\\d", "", memory))
+}
+
+mems$valence <- sapply(mems$retrieval_item, get.valence)
+
+
+
+memfreq <- mems %>%
+  group_by(group, participant, valence) %>% 
+  tally() %>%
+  mutate(freq = n/sum(n)) %>%
+  group_by(group, valence) %>%
+  summarise(freq.mean = mean(freq), freq.sd = sd(freq))
+
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backMemFreq.tex"), width = 6, height = 3)
+}
+
+plot <- ggplot(memfreq, aes(x = valence, y = freq.mean, fill= group)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=freq.mean-freq.sd, ymax=freq.mean+freq.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Valence", y = "Frequency") +
+  fillScale
+
+print(plot)
+if (use_tikz) {
+  dev.off()
+}
+
+
+plot.trans.probs.mems <- function(p, style = "circular") {
+  # Plot transition probabilities between memories
+  
+  p[round(p,2) == 0] = NA # Remove zero-probabilities from plot
+  
+  qgraph(
+    p, # transition probabilities, rounded to two decimal places
+    layout = style,
+    layout.control = 0.9,
+    vsize = 10,
+    esize = 10,
+    mar = c(8,7,8,7), # Margin size (bottom, left, top, right)
+    labels = labels(p)[[1]],
+    label.scale = FALSE,
+    curveAll = TRUE,
+    curveDefault = 1.05,
+    edge.labels = TRUE, # Show numbers on arrows
+    edge.label.cex = 1, # Size of edge labels
+    border.width = 2, # Width of the borders of the nodes
+    colFactor = 0.15, # controls degree of transparancy
+    asize = 2, # Size of arrow heads
+    maximum = 0.2 # Maximum transition probability, used for scaling
+    #filetype = "pdf", # set to "pdf" or "tex" for standalone files
+    #filename = paste0(gsub(" ", "_", graph_title))
+  )
+}
+
+
+mems %>% filter(group == "control model") %>%
+  calc.trans.probs("valence") %>%
+  plot.trans.probs.mems()
+
+mems %>% filter(group == "depressed model") %>%
+  calc.trans.probs("valence") %>%
+  plot.trans.probs.mems()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########################
+###  SUMMARY REPORT  ###
+########################
 
 
 ### Summarise the important metrics of comparison
@@ -657,4 +782,9 @@ mw_share_of_ops
 mw_dominant
 mw_train_length
 attention_span_length
+
+
+
+
+
 
