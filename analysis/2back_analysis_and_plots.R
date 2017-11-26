@@ -45,8 +45,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171119d")
-file_dir_2 <- paste0(data_path, "20171120b")
+file_dir_1 <- paste0(data_path, "20171124b")
+file_dir_2 <- paste0(data_path, "20171125b")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -70,44 +70,41 @@ behdat <- behdat %>%
   select(-model)
 
 
-
-
 # Add outcome and condition of trial (as in Levens and Gotlib)
-behdat$outcome = ""
-behdat$condition = ""
+outcome <- rep("", nrow(behdat))
+condition <- rep("", nrow(behdat))
+
 for (i in 1:nrow(behdat)) {
   
   # The first two trials of each block are discarded, no 2-back exists in either
   if (behdat[i,]$trial %% 55 %in% 1:2) {
-    behdat[i,]$outcome = "none"
-    behdat[i,]$condition = "none"
+    outcome[i] = "none"
+    condition[i] = "none"
   } else {
     expected_answer = ifelse(behdat[i,]$stimulus == behdat[i-2,]$stimulus, "same", "diff")
-    behdat[i,]$outcome = ifelse(behdat[i,]$response == expected_answer, "correct", "wrong")
+    outcome[i] = ifelse(behdat[i,]$response == expected_answer, "correct", "wrong")
     
     if (expected_answer == "same") {
       # Match-set trial (same stimulus as two trials ago)
-      behdat[i,]$condition = "match"
+      condition[i] = "match"
     } else {
-      if (behdat[i-1,]$condition == "match") {
+      if (condition[i-1] == "match") {
         if (behdat[i-1,]$stimulus == behdat[i,]$stimulus) {
           # Perseverance-set trial (diff. than 2-back, but same as match-set in previous trial)
-          behdat[i,]$condition = "pers"
+          condition[i] = "pers"
         } else {
           # Break-set trial (diff. than 2-back, and diff. than match-set in previous trial)
-          behdat[i,]$condition = "break"
+          condition[i] = "break"
         }
       } else {
-        behdat[i,]$condition = "noset"
+        condition[i] = "noset"
       }
     }
   }
 }
 
-behdat$outcome <- as.factor(behdat$outcome)
-behdat$condition <- as.factor(behdat$condition)
-
-
+behdat$outcome <- as.factor(outcome)
+behdat$condition <- as.factor(condition)
 
 
 ### Plot the results next to those of Levens and Gotlib
@@ -388,51 +385,57 @@ ggplot(opfreq, aes(x = operator, y = freq.mean, group = group, fill= group)) +
 # Continuous thought trains are unbroken sequences of successful off-task operators
 # In the same vein, we can define spans of attention as unbroken sequences of successful on-task operators 
 
-train <- 0
-in_train <- FALSE
-
-span <- 0
+span_count <- 0
+span <- rep(0, nrow(opdatall))
 on_task <- FALSE
 
+train_count <- 0
+train <- rep(0, nrow(opdatall))
+in_train <- FALSE
+
+d <- select(opdatall, participant, on_task, success)
 
 for (i in 1:(nrow(opdatall) - 1)) {
   
   # Go over items in sets of two
-  this_op <- opdatall[i,]
-  next_op <- opdatall[i+1,]
-  if (this_op$participant == next_op$participant && this_op$on_task == FALSE && next_op$on_task == FALSE && this_op$success == TRUE && next_op$success == TRUE) {
-    
-    # The pair of operators constitutes a thought train
-    
-    if (!in_train) {
-      in_train <- TRUE
-      train <- train + 1
-    }
-    
-    opdatall[i,]$train <- train
-    opdatall[i+1,]$train <- train
-    
-  } else {
+  this_op <- d[i,]
+  next_op <- d[i+1,]
+  
+  if (this_op$participant != next_op$participant || this_op$on_task != next_op$on_task || this_op$success == FALSE || next_op$success == FALSE) {
     in_train <- FALSE
+    on_task <- FALSE
+    next
   }
   
-  if (this_op$participant == next_op$participant && this_op$on_task == TRUE && next_op$on_task == TRUE && this_op$success == TRUE && next_op$success == TRUE) {
-      
-    # The pair of operators constitutes an "attention span"
+  
+  if (this_op$on_task) {
+    # The current and the next operator are part of an attention span
     
     if (!on_task) {
       on_task <- TRUE
-      span <- span + 1
+      span_count <- span_count + 1
+      span[i] <- span_count
     }
     
-    opdatall[i,]$span <- span
-    opdatall[i+1,]$span <- span
+    span[i+1] <- span_count
+    
     
   } else {
-    on_task <- FALSE
+    # The current and the next operator are part of a thought train
+    
+    if(!in_train) {
+      in_train <- TRUE
+      train_count <- train_count + 1
+      train[i] <- train_count
+    }
+    
+    train[i+1] <- train_count
   }
-  
 }
+
+opdatall$span <- span
+opdatall$train <- train
+
 
 
 # Thought train length
@@ -643,9 +646,9 @@ calc.trans.probs(opdatdepr, "operator") %>%
 
 
 ### Summarise the important metrics of comparison
-accdat %>% group_by(type) %>% summarise(mean(acc.mean))
-respdat %>% group_by(type) %>% summarise(mean(rr.mean))
-rtdat %>% group_by(type) %>% summarise(mean(rt.mean))
+accdat %>% group_by(type) %>% summarise(mean(acc.mean), sd(acc.mean))
+respdat %>% group_by(type) %>% summarise(mean(rr.mean), sd(rr.mean))
+rtdat %>% group_by(type) %>% summarise(mean(rt.mean), sd(rt.mean))
 
 auto_responses
 
