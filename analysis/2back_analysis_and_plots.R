@@ -45,8 +45,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171124b")
-file_dir_2 <- paste0(data_path, "20171125b")
+file_dir_1 <- paste0(data_path, "20171125b")
+file_dir_2 <- paste0(data_path, "20171126")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -529,7 +529,7 @@ ggplot(opfreq, aes(x = operator, y = freq.mean, group = group, fill= group)) +
   facet_grid(on_task ~ ., scales = "free", switch = "both", as.table = FALSE, labeller = labeller(on_task = c("TRUE" = "Task operators", "FALSE" = "Mind-wandering operators"))) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=freq.mean-freq.sd, ymax=freq.mean+freq.sd), width=0.2, position = position_dodge(width = 0.9)) +
-  labs(x = "Operator", y = "Probability of use") +
+  labs(x = "Operator", y = "Frequency") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   fillScale
 
@@ -544,8 +544,9 @@ first_ops <- opdatall %>%
   slice(1) %>%
   group_by(group, participant, on_task, operator) %>%
   tally() %>%
+  group_by(group, participant) %>%
   mutate(p = n/sum(n)) %>%
-  group_by(group, operator, on_task) %>%
+  group_by(group, on_task, operator) %>%
   summarise(p.mean = mean(p), p.sd = sd(p))
 
 
