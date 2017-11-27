@@ -45,7 +45,7 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171126")
+file_dir_1 <- paste0(data_path, "20171125b")
 file_dir_2 <- paste0(data_path, "20171126d")
 
 beh_files <- c()
@@ -646,7 +646,6 @@ calc.trans.probs(opdatdepr, "on_task") %>%
 
 calc.trans.probs(opdatdepr, "operator") %>%
   plot.trans.probs.ops()
-
 
 
 
