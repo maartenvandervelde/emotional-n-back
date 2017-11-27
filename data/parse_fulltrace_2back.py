@@ -148,6 +148,13 @@ def main():
 				
 				# Operator selected for execution
 				elif "Retrieved operator" in line:
+					if executing_operator:
+						operator_data.append([model, participant_num, task_name, task_rep_num, block_num, trial_num, trial_stimulus, operator, operator_start_time, operator_exec_time, operator_on_task, operator_success])
+						executing_operator = False
+						operator_start_time = 0.0
+						operator_exec_time = 0.0
+						operator_on_task = True
+						operator_success = True
 					operator = split[4]
 					executing_operator = True
 					operator_start_time = float(split[0])
