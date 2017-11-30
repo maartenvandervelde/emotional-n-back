@@ -19,7 +19,8 @@ define task emotional-two-back {
 	initial-goals: (do-two-back wander)
 	goals: ()
 	
-	default-activation: 1.0 // lower bound on baselevel activation (default: none)
+	//default-activation: 1.0 // lower bound on baselevel activation (default: none)
+	rt: -10 // retrieval threshold (default: -2)
 	imaginal-activation: 0.25 // spreading activation from WM (default 0.0). A value of 0.25 gives it equal strength to goal buffer spreading
 	
 	
@@ -28,6 +29,8 @@ define task emotional-two-back {
 	retrieval-reinforces: t // every time a fact is retrieved from DM, it receives an extra reference (default: nil -- but t in ACT-R)
 		
 	pm: t // partial matching		
+	
+	bll: 0.75 // decay (default 0.5). Higher == chunks lose activation more quickly.
 }
 
 
@@ -265,11 +268,13 @@ define goal wander {
 	// 	RT4 -> WM1
 	// }
 	
+	
 	operator process-memory-retrieve-next {
 		"When a random memory has been retrieved, place it in WM and make a new retrieval request"
 		RT1 = memory
 		==>
 		RT4 -> WM1
+		//elaborate -> AC1 	// NEW (20171129)
 		memory -> RT1
 		self -> RT2
 	}
@@ -315,6 +320,13 @@ define action focus {
   noise: 0.1
   distribution: uniform
   output: Focussing
+}
+
+define action elaborate {
+	latency: 0.5
+	noise: 0.1
+	distribution: uniform
+	output: Elaborating
 }
 
 define script {	
@@ -365,22 +377,23 @@ define script {
 	
 	
 		// set activation of face depending on its mood
-		face_activation_happy = 1
-		face_activation_neutral = 0.75
-		face_activation_sad = 1
-	
+		// TURNED OFF ON 30/11/2017
+		//face_activation_happy = 1
+		//face_activation_neutral = 0.75
+		//face_activation_sad = 1
+	    
 		if (expression == "happy") {
-			set-activation(chunk-name, face_activation_happy)
+		//	set-activation(chunk-name, face_activation_happy)
 			set-sji("happy", chunk-name, sji_mood_to_face)
 		}
-	
+	    
 		if (expression == "neutral") {
-			set-activation(chunk-name, face_activation_neutral)
+		//	set-activation(chunk-name, face_activation_neutral)
 			set-sji("neutral", chunk-name, sji_mood_to_face)
 		}
-	
+	    
 		if (expression == "sad") {
-			set-activation(chunk-name, face_activation_sad)
+		//	set-activation(chunk-name, face_activation_sad)
 			set-sji("sad", chunk-name, sji_mood_to_face)
 		}
 	}
@@ -518,8 +531,9 @@ define script {
 	
 	
 	// Set uneven goal activation here
-	set-activation("do-two-back", 2)
-	set-activation("wander", 1)
+	// TURNED OFF ON 30/11/2017
+	//set-activation("do-two-back", 2)
+	//set-activation("wander", 1)
 	
 	// Set uneven mood activation here
 	// 20171011 -- NOTE: because we control sji directly, these activations have no effect at all. Disabling them.
@@ -535,30 +549,63 @@ define script {
 	// set-activation("process-face", 3.0)
 	
 	// TEST 2017-11-18: set activation of all task-related operators (including process-face) higher relative to MW operators
-	task-operator-activation = 1.0
+	// TURNED OFF ON 30/11/2017
+	//task-operator-activation = 1.0
+	//
+	//set-activation("process-face", task-operator-activation)
+	//set-activation("recognise-face", task-operator-activation)
+	//set-activation("no-one-back", task-operator-activation)
+	//set-activation("retrieve-one-back", task-operator-activation)
+	//set-activation("failed-to-retrieve-one-back", task-operator-activation)
+	//set-activation("retrieve-two-back", task-operator-activation)
+	//set-activation("no-two-back", task-operator-activation)
+	//set-activation("failed-to-retrieve-two-back", task-operator-activation)
+	//set-activation("two-back-match-press-same", task-operator-activation)
+	//set-activation("two-back-no-match-press-diff", task-operator-activation)
+	//set-activation("update-one-back-cue", task-operator-activation)
+	//set-activation("rehearse-one-back", task-operator-activation)
+	//set-activation("rehearse-two-back", task-operator-activation)
 	
-	set-activation("process-face", task-operator-activation)
-	set-activation("recognise-face", task-operator-activation)
-	set-activation("no-one-back", task-operator-activation)
-	set-activation("retrieve-one-back", task-operator-activation)
-	set-activation("failed-to-retrieve-one-back", task-operator-activation)
-	set-activation("retrieve-two-back", task-operator-activation)
-	set-activation("no-two-back", task-operator-activation)
-	set-activation("failed-to-retrieve-two-back", task-operator-activation)
-	set-activation("two-back-match-press-same", task-operator-activation)
-	set-activation("two-back-no-match-press-diff", task-operator-activation)
-	set-activation("update-one-back-cue", task-operator-activation)
-	set-activation("rehearse-one-back", task-operator-activation)
-	set-activation("rehearse-two-back", task-operator-activation)
+	operator-activation = 1
 	
+	task-operators = [
+		"process-face",
+		"recognise-face",
+		"no-one-back",
+		"retrieve-one-back",
+		"failed-to-retrieve-one-back",
+		"retrieve-two-back",
+		"no-two-back",
+		"failed-to-retrieve-two-back",
+		"two-back-match-press-same",
+		"two-back-no-match-press-diff",
+		"update-one-back-cue",
+		"rehearse-one-back",
+		"rehearse-two-back",
+		"focus-on-fixation",
+		"focus-on-task"
+	]
+	
+	for task-op in task-operators {
+		set-activation(task-op, operator-activation)
+	}
 	
 	// Increase inter-operator-associations between mind-wandering operators
 	mw-operator-assoc = 5.0
 	
-	mw-ops = ["ignore-face-wander-instead", "ignore-expression-wander-instead", "ignore-nback-wander-instead", "done-retrieve-random-memory", "process-memory-retrieve-next", "process-memory-auto-respond-same", "process-memory-auto-respond-diff"]
+	mw-operators = [
+		"ignore-face-wander-instead",
+		"ignore-expression-wander-instead",
+		"ignore-nback-wander-instead",
+		"done-retrieve-random-memory",
+		"process-memory-retrieve-next",
+		"process-memory-auto-respond-same",
+		"process-memory-auto-respond-diff"
+	]
 	
-	for mw-op1 in mw-ops {
-		for mw-op2 in mw-ops {
+	for mw-op1 in mw-operators {
+		set-activation(mw-op1, operator-activation)
+		for mw-op2 in mw-operators {
 			if (mw-op1 != mw-op2) {
 				set-sji(mw-op1, mw-op2, mw-operator-assoc)
 			}
