@@ -45,8 +45,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171125b")
-file_dir_2 <- paste0(data_path, "20171126d")
+file_dir_1 <- paste0(data_path, "20171126d")
+file_dir_2 <- paste0(data_path, "20171129")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -441,7 +441,7 @@ opdatall$train <- train
 
 
 
-# Thought train length
+# Thought train length (number of operators)
 
 mw_train_length <- opdatall %>%
   filter(train != 0) %>%
@@ -470,7 +470,21 @@ if (use_tikz) {
 }
 
 
-# Span of attention length
+# Thought train duration (seconds)
+mw_train_duration <- opdatall %>%
+  filter(train != 0) %>%
+  group_by(train) %>%
+  mutate(time = cumsum(exec_time)) %>%
+  slice(n()) %>% # select only the last element of each train, which has the total time
+  group_by(group, participant) %>%
+  summarise(time = mean(time)) %>%
+  group_by(group) %>%
+  summarise(time.mean = mean(time), time.sd = sd(time))
+
+
+
+
+# Span of attention length (number of operators)
 
 attention_span_length <- opdatall %>%
   filter(span != 0) %>%
@@ -780,6 +794,7 @@ auto_responses
 mw_share_of_ops
 mw_dominant
 mw_train_length
+mw_train_duration
 attention_span_length
 
 
