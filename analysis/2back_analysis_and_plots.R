@@ -45,8 +45,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171126d")
-file_dir_2 <- paste0(data_path, "20171129")
+file_dir_1 <- paste0(data_path, "20171203b")
+file_dir_2 <- paste0(data_path, "20171203e")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -73,31 +73,35 @@ behdat <- behdat %>%
 # Add outcome and condition of trial (as in Levens and Gotlib)
 outcome <- rep("", nrow(behdat))
 condition <- rep("", nrow(behdat))
+valence <- behdat$stimulus
 
 for (i in 1:nrow(behdat)) {
   
   # The first two trials of each block are discarded, no 2-back exists in either
   if (behdat[i,]$trial %% 55 %in% 1:2) {
-    outcome[i] = "none"
-    condition[i] = "none"
+    outcome[i] <- "none"
+    condition[i] <- "none"
   } else {
-    expected_answer = ifelse(behdat[i,]$stimulus == behdat[i-2,]$stimulus, "same", "diff")
-    outcome[i] = ifelse(behdat[i,]$response == expected_answer, "correct", "wrong")
+    expected_answer <- ifelse(behdat[i,]$stimulus == behdat[i-2,]$stimulus, "same", "diff")
+    outcome[i] <- ifelse(behdat[i,]$response == expected_answer, "correct", "wrong")
     
     if (expected_answer == "same") {
       # Match-set trial (same stimulus as two trials ago)
-      condition[i] = "match"
+      condition[i] <- "match"
     } else {
       if (condition[i-1] == "match") {
         if (behdat[i-1,]$stimulus == behdat[i,]$stimulus) {
           # Perseverance-set trial (diff. than 2-back, but same as match-set in previous trial)
-          condition[i] = "pers"
+          condition[i] <- "pers"
         } else {
           # Break-set trial (diff. than 2-back, and diff. than match-set in previous trial)
-          condition[i] = "break"
+          condition[i] <- "break"
+          
+          # In this case, the relevant valence is that of the broken set, not the current stimulus
+          valence[i] <- valence[i-1] 
         }
       } else {
-        condition[i] = "noset"
+        condition[i] <- "noset"
       }
     }
   }
@@ -105,6 +109,7 @@ for (i in 1:nrow(behdat)) {
 
 behdat$outcome <- as.factor(outcome)
 behdat$condition <- as.factor(condition)
+behdat$valence <- as.factor(valence)
 
 
 ### Plot the results next to those of Levens and Gotlib
@@ -130,16 +135,16 @@ behdat <- behdat %>%
 accdat <- behdat %>%
   filter(condition != "none") %>%
   mutate(accuracy = outcome == "correct") %>%
-  group_by(participant, type, condition, stimulus) %>%
+  group_by(participant, type, condition, valence) %>%
   summarise(acc = mean(accuracy)) %>%
-  group_by(type, condition, stimulus) %>%
+  group_by(type, condition, valence) %>%
   summarise(acc.mean = mean(acc), acc.sd = sd(acc))
 
 
 lg.acc.by.condition <- lgdat %>%
-  rename(stimulus = expression) %>%
+  rename(valence = expression) %>%
   mutate(acc.sd = NA) %>%
-  select(stimulus, condition, acc.mean, acc.sd, type)
+  select(valence, condition, acc.mean, acc.sd, type)
 
 acc.by.condition.all <- rbind(lg.acc.by.condition, data.frame(accdat)) %>%
   mutate(type = fct_relevel(type, "control", "control model", "depressed", "depressed model"))
@@ -149,7 +154,7 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "2backAccuracyByCondition.tex"), width = 6, height = 3)
 }
 
-plot <- ggplot(acc.by.condition.all, aes(x = stimulus, y = acc.mean, group = type, fill = type)) +
+plot <- ggplot(acc.by.condition.all, aes(x = valence, y = acc.mean, group = type, fill = type)) +
   facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   # scale_y_continuous(labels = percent) +
@@ -171,20 +176,20 @@ if (use_tikz) {
 
 respdat <- allbehdat %>%
   mutate(ontime = outcome %in% c("correct", "wrong") & rt <= 2.0 & response != "none") %>%
-  group_by(participant, type, condition, stimulus, ontime) %>%
+  group_by(participant, type, condition, valence, ontime) %>%
   tally() %>%
   complete(ontime, fill = list(n = 0)) %>%
-  group_by(participant, type, condition, stimulus) %>%
+  group_by(participant, type, condition, valence) %>%
   mutate(freq = n/sum(n)) %>% # Represent as fraction
   filter(ontime == TRUE) %>%
   select(-ontime, -n) %>%
-  group_by(type, condition, stimulus) %>%
+  group_by(type, condition, valence) %>%
   summarise(rr.mean = mean(freq), rr.sd = sd(freq))
 
 lg.respdat <- lgdat %>%
   mutate(rr.sd = NA) %>%
-  rename(stimulus = expression) %>%
-  select(condition, stimulus, rr.mean, rr.sd, type)
+  rename(valence = expression) %>%
+  select(condition, valence, rr.mean, rr.sd, type)
 
 
 respdat.all <- rbind(lg.respdat, data.frame(respdat)) %>%
@@ -193,7 +198,7 @@ respdat.all <- rbind(lg.respdat, data.frame(respdat)) %>%
 if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseRate.tex"), width = 6, height = 3)
 }
-plot <- ggplot(respdat.all, aes(x = stimulus, y = rr.mean, group = type, fill = type)) +
+plot <- ggplot(respdat.all, aes(x = valence, y = rr.mean, group = type, fill = type)) +
   facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
   scale_y_continuous() +
@@ -212,14 +217,15 @@ if (use_tikz) {
 
 rtdat <- behdat %>%
   filter(condition != "none") %>%
-  # group_by(participant, type, condition, stimulus) %>%  # Uncomment these lines for more than one participant
-  # summarise(rt.mean = mean(rt)) %>% 
-  group_by(type, condition, stimulus) %>%
+  filter(outcome == "correct") %>%
+  group_by(participant, type, condition, valence) %>%
+  summarise(rt = mean(rt)) %>% 
+  group_by(type, condition, valence) %>%
   summarise(rt.mean = mean(rt), rt.sd = sd(rt))
 
 lg.rtdat <- lgdat %>%
-  rename(stimulus = expression) %>%
-  select(condition, stimulus, type, rt.mean, rt.sd)
+  rename(valence = expression) %>%
+  select(condition, valence, type, rt.mean, rt.sd)
 
 rtdat.all <- rbind(lg.rtdat, data.frame(rtdat)) %>%
   mutate(type = fct_relevel(type, "control", "control model", "depressed", "depressed model"))
@@ -228,7 +234,7 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseTime.tex"), width = 6, height = 3)
 }
 
-plot <- ggplot(rtdat.all, aes(x = stimulus, y = rt.mean, group = type, fill= type)) +
+plot <- ggplot(rtdat.all, aes(x = valence, y = rt.mean, group = type, fill= type)) +
   facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
@@ -250,17 +256,18 @@ if (use_tikz) {
 ## z-transformed RT
 
 zrtdat <- behdat %>%
+  filter(outcome == "correct") %>%
   group_by(participant, type) %>%
   mutate(overall.rt = mean(rt)) %>%
-  group_by(participant, type, condition, stimulus, overall.rt) %>%
+  group_by(participant, type, condition, valence, overall.rt) %>%
   summarise(condition.rt = mean(rt), condition.rt.sd = sd(rt)) %>%
   mutate(z.rt = (condition.rt - overall.rt) / condition.rt.sd) %>%
-  group_by(type, condition, stimulus) %>%
+  group_by(type, condition, valence) %>%
   summarise(z.rt.mean = mean(z.rt), z.rt.sd = sd(z.rt))
 
 lg.zrtdat <- lgdat %>%
-  rename(stimulus = expression) %>%
-  select(condition, stimulus, z.rt.mean, z.rt.sd, type)
+  rename(valence = expression) %>%
+  select(condition, valence, z.rt.mean, z.rt.sd, type)
 
 zrtdat.all <- rbind(lg.zrtdat, data.frame(zrtdat)) %>%
   mutate(type = fct_relevel(type, "control", "control model", "depressed", "depressed model"))
@@ -269,7 +276,7 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseTimeZ.tex"), width = 6, height = 3)
 }
 
-plot <- ggplot(zrtdat.all, aes(x = stimulus, y = z.rt.mean, group = type, fill= type)) +
+plot <- ggplot(zrtdat.all, aes(x = valence, y = z.rt.mean, group = type, fill= type)) +
   facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
@@ -283,6 +290,26 @@ if (use_tikz) {
 }
 
 
+## Plot just the conditions with differences between groups
+zrtdat.all.selection <- zrtdat.all %>%
+  filter(condition == "break" & valence == "happy" | condition == "break" & valence == "sad" | condition == "noset" & valence == "sad")
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backResponseTimeZselection.tex"), width = 6, height = 3)
+}
+
+plot <- ggplot(zrtdat.all.selection, aes(x = valence, y = z.rt.mean, group = type, fill= type)) +
+  facet_grid(~condition, scales = "free", space = "free_x", labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=z.rt.mean-z.rt.sd, ymax=z.rt.mean+z.rt.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Condition", y = "z-transformed mean RT") +
+  fillScale
+
+print(plot)
+if (use_tikz) {
+  dev.off()
+}
 
 
 ########################
