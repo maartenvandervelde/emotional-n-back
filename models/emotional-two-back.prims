@@ -30,7 +30,7 @@ define task emotional-two-back {
 		
 	pm: t // partial matching		
 	
-	bll: 0.75 // decay (default 0.5). Higher == chunks lose activation more quickly.
+	lf: 0.35 // latency factor (default: 0.2) -- a multiplier for the retrieval time. Higher == slower retrievals.
 }
 
 
@@ -244,6 +244,17 @@ define goal wander {
 		nil -> G3
 	}
 	
+	// NEW (20171203) -- make it more likely to start wandering when a sad face is part of the rehearsal loop
+	operator ignore-sad-nback-wander-instead {
+		"Start mind-wandering when a sad face observation has been retrieved"
+		RT1 = face-observation
+		RT3 = sad
+		==>
+		memory -> RT1
+		self -> RT2
+		nil -> G3
+	}
+	
 	operator done-retrieve-random-memory {
 		"When a response has already been made, retrieve a random memory"
 		V3 = done
@@ -274,7 +285,7 @@ define goal wander {
 		RT1 = memory
 		==>
 		RT4 -> WM1
-		//elaborate -> AC1 	// NEW (20171129)
+		elaborate -> AC1 	// NEW (20171129)
 		memory -> RT1
 		self -> RT2
 	}
@@ -309,7 +320,7 @@ define facts {
 
 
 define action press-key {
-  latency: 0.3
+  latency: 0.4 
   noise: 0.1
   distribution: uniform
   output: Pressing
@@ -323,7 +334,7 @@ define action focus {
 }
 
 define action elaborate {
-	latency: 0.5
+	latency: 1.0
 	noise: 0.1
 	distribution: uniform
 	output: Elaborating
@@ -597,6 +608,7 @@ define script {
 		"ignore-face-wander-instead",
 		"ignore-expression-wander-instead",
 		"ignore-nback-wander-instead",
+		"ignore-sad-nback-wander-instead",
 		"done-retrieve-random-memory",
 		"process-memory-retrieve-next",
 		"process-memory-auto-respond-same",
