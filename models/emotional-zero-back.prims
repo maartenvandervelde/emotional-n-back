@@ -18,15 +18,23 @@ define task emotional-zero-back {
 	//goal-chunk-spreads: t // the amount of spreading activation from goals depends on their activation, giving them more or less priority (default: nil)
 	
 	// imaginal-autoclear: nil // do not remove chunks from WM automatically
-	default-activation: 1.0 // lower bound on baselevel activation (default: none)
+	//default-activation: 1.0 // lower bound on baselevel activation (default: none)
+	rt: -10 // retrieval threshold (default: -2)
 	imaginal-activation: 0.25 // spreading activation from WM (default 0.0). A value of 0.25 gives it equal strength to goal buffer spreading
+
+	default-inter-operator-assoc: 5.0 // sji between operators belonging to the same goal (default: 1.0). Higher == "stickier" goals.
+	
+	retrieval-reinforces: t // every time a fact is retrieved from DM, it receives an extra reference (default: nil -- but t in ACT-R)
+	
+	pm: t // partial matching
+	
+	lf: 0.35 // latency factor (default: 0.2) -- a multiplier for the retrieval time. Higher == slower retrievals.
+	
 	
 	// default-operator-assoc: 3.0 // strength of association between a goal and its operators (default: 4.0)
 	// default-inter-operator-assoc: 2.0 // strength of association between operators of the same goal (default: 1.0)
 
 
-	
-	pm: t // partial matching		
 }
 
 
@@ -98,6 +106,14 @@ define goal do-zero-back {
  		subvocalise -> AC1
  		G3 -> AC2
  	}
+	
+	operator focus-on-fixation {
+		"Focus on the fixation cross in preparation for the next stimulus"
+		V1 = fixation
+		==>
+		focus -> AC1
+	}
+
 
 }
 
@@ -115,7 +131,7 @@ define goal wander {
 		self -> RT2
 	}
 	
-	operator ignore-responding-wander-instead {
+	operator ignore-expression-wander-instead {
 		"Start mind-wandering when a facial expression has been retrieved"
 		RT1 = face-expression
 		==>
@@ -125,19 +141,53 @@ define goal wander {
 	
 	
 	operator done-retrieve-random-memory {
-		"When there is nothing left to do, retrieve a random memory"
+		"When a response has already been made, retrieve a random memory"
 		V3 = done
 		==>
 		memory -> RT1
 		self -> RT2
 	}
 	
-	operator process-memory {
-		"When a random memory has been retrieved, place it in WM"
+	//operator process-memory {
+	//	"When a random memory has been retrieved, place it in WM"
+	//	RT1 = memory
+	//	==>
+	//	RT4 -> WM1
+	//}
+	
+	operator process-memory-retrieve-next {
+		"When a random memory has been retrieved, place it in WM and make a new retrieval request"
 		RT1 = memory
 		==>
 		RT4 -> WM1
+		elaborate -> AC1 	// NEW (20171129)
+		memory -> RT1
+		self -> RT2
 	}
+	
+	operator process-memory-auto-respond-same {
+		"When a random memory has been retrieved, place it in WM and make an automatic 'same' response"
+		RT1 = memory
+		V1 = face
+		V3 = nil // Ensure that no response has been made yet
+		==>
+		RT4 -> WM1
+ 		press-key -> AC1
+ 		same -> AC2
+	}
+	
+	operator process-memory-auto-respond-diff {
+		"When a random memory has been retrieved, place it in WM and make an automatic 'diff' response"
+		RT1 = memory
+		V1 = face
+		V3 = nil // Ensure that no response has been made yet
+		==>
+		RT4 -> WM1
+ 		press-key -> AC1
+ 		diff -> AC2
+	}
+
+
 }
 
 
@@ -148,7 +198,7 @@ define facts {
 
 
 define action press-key {
-  latency: 0.3
+  latency: 0.4
   noise: 0.1
   distribution: uniform
   output: Pressing
@@ -161,6 +211,19 @@ define action subvocalise {
 	output: Subvocalising
 }
 
+define action focus {
+  latency: 0.3
+  noise: 0.1
+  distribution: uniform
+  output: Focussing
+}
+
+define action elaborate {
+	latency: 1.0
+	noise: 0.1
+	distribution: uniform
+	output: Elaborating
+}
 
 
 define script {	
@@ -174,7 +237,7 @@ define script {
 	/// SETUP ///
 	/////////////
 	
-	debug = 1 // Set to 1 to get more verbose output	
+	verbose = 1 // Set to 1 to get more verbose output	
 	
 	// Create 46 stimuli of each expression
 	happy-faces = []
@@ -209,22 +272,22 @@ define script {
 		
 		
 		// set activation of face depending on its mood
-		face_activation_happy = 3
-		face_activation_neutral = 2
-		face_activation_sad = 1
+		//face_activation_happy = 3
+		//face_activation_neutral = 2
+		//face_activation_sad = 1
 		
 		if (expression == "happy") {
-			set-activation(chunk-name, face_activation_happy)
+			//set-activation(chunk-name, face_activation_happy)
 			set-sji("happy", chunk-name, sji_mood_to_face)
 		}
 		
 		if (expression == "neutral") {
-			set-activation(chunk-name, face_activation_neutral)
+			//set-activation(chunk-name, face_activation_neutral)
 			set-sji("neutral", chunk-name, sji_mood_to_face)
 		}
 		
 		if (expression == "sad") {
-			set-activation(chunk-name, face_activation_sad)
+			//set-activation(chunk-name, face_activation_sad)
 			set-sji("sad", chunk-name, sji_mood_to_face)
 		}
 	}
@@ -255,7 +318,7 @@ define script {
 	
 	blocks = shuffle(blocks)
 	
-	if (debug) {
+	if (verbose) {
 		print("Setting up 0-back task...")
 		print("Randomly created 3 blocks of trials:")
 		blocknum = 1
@@ -330,8 +393,9 @@ define script {
 	
 	
 	// Set uneven goal activation here
-	set-activation("do-zero-back", 6)
-	set-activation("wander", 1)
+	// TURNED OFF ON 30/11/2017
+	//set-activation("do-zero-back", 6)
+	//set-activation("wander", 1)
 	
 	// Set uneven mood activation here
 	// 20171011 -- NOTE: because we control sji directly, these activations have no effect at all. Disabling them.
@@ -340,39 +404,38 @@ define script {
 	// set-activation("sad", 4)
 	
 	
+	operator-activation = 1
+	
+	task-operators = [
+		"store-target",
+		"process-face",
+		"face-expression-matches-target",
+		"face-expression-does-not-match-target",
+		"face-expression-not-recognised-respond-same",
+		"face-expression-not-recognised-respond-diff",
+		"done-subvocalise-target",
+		"focus-on-fixation"
+	]
+	
+	for task-op in task-operators { 
+		set-activation(task-op, operator-activation)
+	}
+	
+	mw-operators = [
+		"ignore-face-wander-instead",
+		"ignore-expression-wander-instead",
+		"done-retrieve-random-memory",
+		"process-memory-retrieve-next",
+		"process-memory-auto-respond-same",
+		"process-memory-auto-respond-diff"
+	]
+	
+	for mw-op in mw-operators {
+		set-activation(mw-op, operator-activation)
+	}
+	
 	// Set activation of process-face operator so high that it can break through mind-wandering
-	set-activation("process-face", 1.5)
-	
-	
-	
-	// Set stronger sji between operators from the wander goal to prolong MW episodes
-	// set-sji("ignore-face-wander-instead", "ignore-responding-wander-instead", 2.5)
-	// set-sji("ignore-face-wander-instead", "done-retrieve-random-memory", 2.5)
-	// set-sji("ignore-face-wander-instead", "process-memory", 2.5)
-	// set-sji("ignore-responding-wander-instead", "ignore-face-wander-instead", 2.5)
-	// set-sji("ignore-responding-wander-instead", "done-retrieve-random-memory", 2.5)
-	// set-sji("ignore-responding-wander-instead", "process-memory", 2.5)
-	// set-sji("done-retrieve-random-memory", "ignore-face-wander-instead", 2.5)
-	// set-sji("done-retrieve-random-memory", "ignore-responding-wander-instead", 2.5)
-	// set-sji("done-retrieve-random-memory", "process-memory", 2.5)
-	// set-sji("process-memory", "ignore-face-wander-instead", 2.5)
-	// set-sji("process-memory", "ignore-responding-wander-instead", 2.5)
-	// set-sji("process-memory", "done-retrieve-random-memory", 2.5)
-	
-	// Attempt at standardizing parameter values. Default inter-operator-assoc is 1
-	// 20171011 -- disabled because RRs are too low. making it equal to on-task should make MW less sticky.
-	// set-sji("ignore-face-wander-instead", "ignore-responding-wander-instead", 1.25)
-// 	set-sji("ignore-face-wander-instead", "done-retrieve-random-memory", 1.25)
-// 	set-sji("ignore-face-wander-instead", "process-memory", 1.25)
-// 	set-sji("ignore-responding-wander-instead", "ignore-face-wander-instead", 1.25)
-// 	set-sji("ignore-responding-wander-instead", "done-retrieve-random-memory", 1.25)
-// 	set-sji("ignore-responding-wander-instead", "process-memory", 1.25)
-// 	set-sji("done-retrieve-random-memory", "ignore-face-wander-instead", 1.25)
-// 	set-sji("done-retrieve-random-memory", "ignore-responding-wander-instead", 1.25)
-// 	set-sji("done-retrieve-random-memory", "process-memory", 1.25)
-// 	set-sji("process-memory", "ignore-face-wander-instead", 1.25)
-// 	set-sji("process-memory", "ignore-responding-wander-instead", 1.25)
-// 	set-sji("process-memory", "done-retrieve-random-memory", 1.25)
+	//set-activation("process-face", 1.5)
 	
 	
 	
@@ -381,7 +444,7 @@ define script {
 	/// RUN EXPERIMENT ///
 	//////////////////////
 	
-	if (debug) {
+	if (verbose) {
 		print()
 		print("Running experiment...")
 	}
@@ -396,7 +459,7 @@ define script {
 		first-trial = block[0]
 		block-target = first-trial[0]
 				
-		if (debug) {
+		if (verbose) {
 			print("______________________________________")
 			print("Starting block", blocknum, ". Target expression: ", block-target)
 			print("______________________________________")
@@ -424,7 +487,7 @@ define script {
 						
 			starttime = time()
 			
-			if (debug) {
+			if (verbose) {
 				print("______________________________________")
 				print("Trial", trialnum, "target:", block-target, "current:", expression, time())
 				print("______________________________________")
@@ -437,7 +500,7 @@ define script {
 			run-until-relative-time-or-action(2.0, "press-key")
 			rt = time() - starttime
 			timeleft = 2.0 - rt
-			if (debug) {
+			if (verbose) {
 				print("----- TIME LEFT: ", timeleft)
 			}
 			
@@ -446,7 +509,7 @@ define script {
 			if (length(action) > 1) {
 				response = action[1]				
 			}
-			if (debug) {
+			if (verbose) {
 				print("Action:", response)
 			}
 			
@@ -476,24 +539,18 @@ define script {
 			
 			} else {
 				// The model did not respond within 2 seconds
-				if (debug) {
+				if (verbose) {
 					print("No response within 2s time limit.")
 				}
 			}
 			
-			if(debug) {
+			if(verbose) {
 				if (correct) {
 					print("Correct!")
 				} else {
 					print("Wrong!")
 				}
 			}
-			
-			set-data-file-field(0, trialnum)
-			set-data-file-field(1, block-target)
-			set-data-file-field(2, expression)
-			set-data-file-field(3, response)
-			set-data-file-field(4, rt)
 			
 			// There is a 0.5 second interval between trials, in which the screen is empty (here fixation)
 			screen("fixation")

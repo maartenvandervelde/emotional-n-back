@@ -14,7 +14,7 @@
 
 define task emotional-two-back {
 	
-	task-constants: (target face happy sad neutral same diff start fixation memory face-observation, process-face get-one-back get-two-back respond update)
+	task-constants: (target face happy sad neutral same diff start fixation memory face-observation process-face get-one-back get-two-back respond update rehearse-one rehearse-two)
 	
 	initial-goals: (do-two-back wander)
 	goals: ()
@@ -176,19 +176,30 @@ define goal do-two-back {
 		==>
 		face-observation -> RT1
 		WM4 -> RT2
+		rehearse -> G3
 	}
 	
 	operator rehearse-two-back {
-		"Upon retrieving the 1-back for retrieval, use its cue to retrieve the 2-back"
-		V3 = done
+		"Upon retrieving the 1-back for retrieval, subvocalise it and use its cue to retrieve the 2-back"
 		RT1 = face-observation
 		RT4 <> nil
-		G3 = nil
+		G3 = rehearse-one
 		==>
+		subvocalise -> AC1
+		RT2 -> AC2
 		face-observation -> RT1
 		RT4 -> RT2
+		rehearse-two -> G3
 	}
 	
+	operator subvocalise-two-back {
+		RT1 = face-observation
+		G3 = rehearse-two
+		==>
+		subvocalise -> AC1
+		RT2 -> AC2
+		nil -> G3
+	}
 	
 	// Focus on fixation
 	
@@ -243,18 +254,7 @@ define goal wander {
 		self -> RT2
 		nil -> G3
 	}
-	
-	// NEW (20171203) -- make it more likely to start wandering when a sad face is part of the rehearsal loop
-	operator ignore-sad-nback-wander-instead {
-		"Start mind-wandering when a sad face observation has been retrieved"
-		RT1 = face-observation
-		RT3 = sad
-		==>
-		memory -> RT1
-		self -> RT2
-		nil -> G3
-	}
-	
+		
 	operator done-retrieve-random-memory {
 		"When a response has already been made, retrieve a random memory"
 		V3 = done
@@ -326,6 +326,13 @@ define action press-key {
   output: Pressing
 }
 
+define action subvocalise {
+	latency: 0.3
+	noise: 0.1
+	distribution: uniform
+	output: Subvocalising
+}
+
 define action focus {
   latency: 0.3
   noise: 0.1
@@ -388,23 +395,22 @@ define script {
 	
 	
 		// set activation of face depending on its mood
-		// TURNED OFF ON 30/11/2017
-		//face_activation_happy = 1
-		//face_activation_neutral = 0.75
-		//face_activation_sad = 1
+		//face_activation_happy = -3
+		//face_activation_neutral = -3
+		//face_activation_sad = -1.5
 	    
 		if (expression == "happy") {
-		//	set-activation(chunk-name, face_activation_happy)
+			//set-activation(chunk-name, face_activation_happy)
 			set-sji("happy", chunk-name, sji_mood_to_face)
 		}
 	    
 		if (expression == "neutral") {
-		//	set-activation(chunk-name, face_activation_neutral)
+			//set-activation(chunk-name, face_activation_neutral)
 			set-sji("neutral", chunk-name, sji_mood_to_face)
 		}
 	    
 		if (expression == "sad") {
-		//	set-activation(chunk-name, face_activation_sad)
+			//set-activation(chunk-name, face_activation_sad)
 			set-sji("sad", chunk-name, sji_mood_to_face)
 		}
 	}
@@ -593,8 +599,8 @@ define script {
 		"update-one-back-cue",
 		"rehearse-one-back",
 		"rehearse-two-back",
-		"focus-on-fixation",
-		"focus-on-task"
+		"subvocalise-two-back",
+		"focus-on-fixation"
 	]
 	
 	for task-op in task-operators {
@@ -608,7 +614,6 @@ define script {
 		"ignore-face-wander-instead",
 		"ignore-expression-wander-instead",
 		"ignore-nback-wander-instead",
-		"ignore-sad-nback-wander-instead",
 		"done-retrieve-random-memory",
 		"process-memory-retrieve-next",
 		"process-memory-auto-respond-same",
