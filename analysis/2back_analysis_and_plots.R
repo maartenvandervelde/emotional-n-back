@@ -45,8 +45,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171203b")
-file_dir_2 <- paste0(data_path, "20171203e")
+file_dir_1 <- paste0(data_path, "20171204d")
+file_dir_2 <- paste0(data_path, "20171204e")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
@@ -116,10 +116,9 @@ behdat$valence <- as.factor(valence)
 
 ## Accuracy
 
-# Filter out non-responses
 allbehdat <- behdat
 behdat <- behdat %>%
-  filter(response != "none") %>%
+  filter(response != "none") %>% # Filter out non-responses
   filter(rt <= 2.0) %>%   # Responses after 2s are too late
   filter(rt > 0) %>%      # Response times of 0s indicate missed trials
   filter(outcome != "none") # Non-response trials at the start of each block
@@ -133,7 +132,6 @@ behdat <- behdat %>%
 
 
 accdat <- behdat %>%
-  filter(condition != "none") %>%
   mutate(accuracy = outcome == "correct") %>%
   group_by(participant, type, condition, valence) %>%
   summarise(acc = mean(accuracy)) %>%
