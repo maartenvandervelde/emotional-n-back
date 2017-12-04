@@ -22,6 +22,7 @@ task_operators = [
 	"update-one-back-cue",
 	"rehearse-one-back",
 	"rehearse-two-back",
+	"subvocalise-two-back",
 	"focus-on-fixation",
 	"focus-on-task"
 ]

@@ -26,7 +26,8 @@ task_operators = [
     "face-expression-does-not-match-target",
     "face-expression-not-recognised-respond-same",
     "face-expression-not-recognised-respond-diff",
-    "done-subvocalise-target"
+    "done-subvocalise-target",
+	"focus-on-fixation"
 ]
 
 def read_files_from_directory(path):
