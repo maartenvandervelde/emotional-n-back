@@ -372,7 +372,7 @@ define script {
 	// Strength of association between mood chunks and corresponding memory chunks
 	sji_mood_to_memory = 1
 	
-	for i in 0 to 10 {
+	for i in 0 to 5 {
 		memoryhappy = "memoryhappy" + i
 		name = "ha" + i
 		add-dm(memoryhappy, "memory", "self", name, "happy")
@@ -383,6 +383,13 @@ define script {
 		add-dm(memoryneutral, "memory", "self", name, "neutral")
 		set-sji("neutral", memoryneutral, sji_mood_to_memory)
 		
+		//memorysad = "memorysad" + i
+		//name = "sa" + i
+		//add-dm(memorysad, "memory", "self", name, "sad")
+		//set-sji("sad", memorysad, sji_mood_to_memory)
+	}
+	
+	for i in 0 to 20 {
 		memorysad = "memorysad" + i
 		name = "sa" + i
 		add-dm(memorysad, "memory", "self", name, "sad")
