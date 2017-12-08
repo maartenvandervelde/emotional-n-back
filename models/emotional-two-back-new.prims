@@ -1,0 +1,601 @@
+
+
+define task emotional-two-back {
+
+	initial-goals: (do-two-back)
+
+	rt: -10 // retrieval threshold (default: -2)
+	retrieval-reinforces: t // default: nil
+	production-prim-latency: 0.05 // default: 0.3
+	imaginal-delay: 0 // default: 0.2
+	
+
+}
+
+
+
+define goal do-two-back {
+
+
+	//-------------------------------------------------//
+	// Stage 1: update the items in the rehearsal loop //
+	//-------------------------------------------------//
+	
+	operator get-old-two-back {
+		"Retrieve the old 2-back observation from DM"
+		V1 = face
+		V3 = nil
+		G3 = nil
+		==>
+		face-observation -> RT1
+		two-back -> RT2
+		
+		update-two-back -> G3
+	}
+
+	operator modify-old-two-back {
+		"Create a modified version of the old 2-back observation"
+		RT1 = face-observation
+		RT2 = two-back
+		==>
+		face-observation -> WM1
+		old -> WM2
+		RT3 -> WM3
+				
+		update-one-back -> G3
+	}
+	
+	operator cannot-retrieve-old-two-back {
+		"Retrieving the old 2-back failed, so move on to the old 1-back"
+		G3 = update-two-back
+		RT1 = error
+		==>
+		update-one-back -> G3
+	}
+	
+	
+	operator get-old-one-back {
+		"Retrieve the old 1-back observation from DM"
+		G3 = update-one-back
+		==>
+		face-observation -> RT1
+		one-back -> RT2
+	}
+	
+	operator modify-old-one-back {
+		"Create a modified version of the old 1-back observation"
+		RT1 = face-observation
+		RT2 = one-back
+		==>
+		face-observation -> WM1
+		two-back -> WM2
+		RT3 -> WM3
+				
+		update-zero-back -> G3
+	}
+	
+	operator cannot-retrieve-old-one-back {
+		"Retrieving the old 1-back failed, so move on to the old 0-back"
+		G3 = update-one-back
+		RT1 = error
+		==>
+		update-zero-back -> G3
+	}
+	
+	operator get-old-zero-back {
+		"Retrieve the old 0-back observation from DM"
+		G3 = update-zero-back
+		==>
+		face-observation -> RT1
+		zero-back -> RT2
+	}
+	
+	operator modify-old-zero-back {
+		"Create a modified version of the old 0-back observation"
+		RT1 = face-observation
+		RT2 = zero-back
+		==>
+		face-observation -> WM1
+		one-back -> WM2
+		RT3 -> WM3
+		
+		push-zero-back -> G3
+	}
+	
+	operator push-modified-old-zero-back {
+		"Push the modified version of the 0-back observation from WM to DM"
+		WM1 = face-observation
+		WM2 = one-back
+		WM3 = RT3
+		==>
+		nil -> WM1
+	}
+	
+	
+	operator cannot-retrieve-old-zero-back {
+		"Retrieving the old 0-back failed, so move on to next stage"
+		G3 = update-zero-back
+		RT1 = error
+		==>
+		attend-stimulus -> G3
+	}
+	
+	
+	
+	
+	//---------------------------------------//
+	// Stage 2: process the current stimulus //
+	//---------------------------------------//
+	
+	operator process-face {
+		"Begin a retrieval to identify the facial expression of the current stimulus"
+		V1 = face
+		V3 = nil
+		G3 = attend-stimulus
+		==>
+		face-expression -> RT1
+		V2 -> RT3
+		
+		process-stimulus -> G3
+	}
+	
+	operator recognise-face {
+		"Create a WM chunk for the recognised face"
+		RT1 = face-expression
+		G3 = process-stimulus
+		==>
+		face-observation -> WM1
+		zero-back -> WM2
+		RT2 -> WM3
+		
+		determine-response -> G3
+	}
+	
+	
+	
+	
+	//----------------------------------------//
+	// Stage 3: work out the correct response //
+	//----------------------------------------//
+	
+	operator get-two-back {
+		"Retrieve the 2-back observation"
+		G3 = determine-response
+		==>
+		face-observation -> RT1
+		two-back -> RT2
+	}
+	
+	operator two-back-matches {
+		"The current observation (in WM) matches the mood of the 2-back observation (in RT), so encode the intention to respond SAME in a slot of the goal buffer. Also push the current observation from WM to DM."
+		G3 = determine-response
+		RT1 = face-observation
+		RT2 = two-back
+		RT3 = WM3
+		==>
+		nil -> WM1
+		
+		respond-same -> G3
+	}
+	
+	operator two-back-does-not-match {
+		"The current observation (in WM) does not match the mood of the 2-back observation (in RT), so encode the intention to respond DIFF in a slot of the goal buffer. Also push the current observation from WM to DM."
+		G3 = determine-response
+		RT1 = face-observation
+		RT2 = two-back
+		RT3 <> WM3
+		==>
+		nil -> WM1
+		
+		respond-diff -> G3
+	}
+	
+	operator cannot-retrieve-two-back {
+		"The 2-back observation cannot be retrieved, so don't respond"
+		G3 = determine-response
+		RT1 = error
+		==>
+		rehearse -> G3
+	}
+	
+	
+	
+	
+	//-------------------------------//
+	// Stage 4: execute the response //
+	//-------------------------------//
+	
+	operator respond-same {
+		"The goal buffer contains the intention to respond SAME, so press the corresponding button"
+		G3 = respond-same
+		V3 = nil
+		==>
+ 		press-key -> AC1
+ 		same -> AC2
+		
+		rehearse -> G3
+	}
+	
+	operator respond-diff {
+		"The goal buffer contains the intention to respond DIFF, so press the corresponding button"
+		G3 = respond-diff
+		V3 = nil
+		==>
+ 		press-key -> AC1
+ 		diff -> AC2		
+		
+		rehearse -> G3
+	}
+	
+	
+	
+	
+	//-------------------//
+	// Stage 5: rehearse //
+	//-------------------//
+	
+	
+	operator rehearse-but-not-really {
+		G3 = rehearse
+		==>
+		nil -> G3
+	}
+	
+	
+	
+	
+	//----------------------------//
+	// Stage 0: focus on fixation //
+	//----------------------------//
+	
+	operator focus-on-fixation {
+		"Focus on the fixation cross in preparation for the next stimulus"
+		V1 = fixation
+		==>
+		focus -> AC1
+		
+		nil -> WM1
+		
+		nil -> G3
+	}
+	
+}
+
+
+
+
+
+define facts {		
+	(memory x y) // Explicit definition prevents unwanted retrievals of "memory" chunk during mind-wandering
+}
+
+
+
+define action press-key {
+  latency: 0.4 
+  noise: 0.1
+  distribution: uniform
+  output: Pressing
+}
+
+
+define action focus {
+  latency: 0.3
+  noise: 0.1
+  distribution: uniform
+  output: Focussing
+}
+
+
+
+define script {	
+	
+	// The 2-back task consists of 6 blocks of 55 trials each (plus 10 practice trials).
+	// In each trial a face is shown. The participant has to indicate whether the face's expression matches that of the face two trials ago.
+	// Images are presented for 2 seconds. There is an inter-trial interval of 2.5 seconds.
+		
+	/////////////
+	/// SETUP ///
+	/////////////
+
+	verbose = 1 // Set to 1 to get more verbose output (required for parsing batch runs)
+	
+	// Create 46 stimuli of each expression
+	happy-faces = []
+	neutral-faces = []
+	sad-faces = []
+	
+	for i in 0 to 45 {
+		happy-faces[i] = ["happy", "happy" + i]
+		neutral-faces[i] = ["neutral", "neutral" + i]
+		sad-faces[i] = ["sad", "sad" + i]	
+	}
+	
+	// Combine all stimuli in a single list
+	all-faces = []
+	for i in 0 to 45 {
+		// all-faces[i] = ["happy", happy-faces[i]]
+		// all-faces[i + 46] = ["neutral", neutral-faces[i]]
+		// all-faces[i + 92] = ["sad", sad-faces[i]]
+		all-faces[i] = happy-faces[i]		
+		all-faces[i + 46] = neutral-faces[i]
+		all-faces[i + 92] = sad-faces[i]	
+	}
+	
+	// Add all faces to the model's DM (this allows it to recognise facial expressions)
+	for i in 0 to 137 {
+		face = all-faces[i]
+		chunk-name = "face" + i
+		expression = face[0]
+		image = face[1]
+		add-dm(chunk-name, "face-expression", expression, image)
+		
+		// 3/10/2017: set strength of association between mood chunks and face chunks to a positive value rather than 0
+		// to allow spreading activation from the target (goal buffer) to similar chunks in memory
+		sji_mood_to_face = 1 // in practice the actual SA is 1/4 of this value (since there are 4 slots in the goal buffer)
+	
+	
+		// set activation of face depending on its mood
+		//face_activation_happy = -3
+		//face_activation_neutral = -3
+		//face_activation_sad = -1.5
+	    
+		if (expression == "happy") {
+			//set-activation(chunk-name, face_activation_happy)
+			set-sji("happy", chunk-name, sji_mood_to_face)
+		}
+	    
+		if (expression == "neutral") {
+			//set-activation(chunk-name, face_activation_neutral)
+			set-sji("neutral", chunk-name, sji_mood_to_face)
+		}
+	    
+		if (expression == "sad") {
+			//set-activation(chunk-name, face_activation_sad)
+			set-sji("sad", chunk-name, sji_mood_to_face)
+		}
+	}
+		
+	
+	all-faces = shuffle(all-faces)
+		
+	// The experiment has 330 trials, 110 per facial expression.
+	// Add 64 items to each expression through duplication
+	happy-faces-dupl = []
+	neutral-faces-dupl = []
+	sad-faces-dupl = []
+	
+	for i in 0 to 45 {
+		happy-faces-dupl[i] = happy-faces[i] // include original 46 faces 
+		neutral-faces-dupl[i] = neutral-faces[i]
+		sad-faces-dupl[i] = sad-faces[i]
+		happy-faces-dupl[i + 46] = happy-faces[i] // include original 46 faces a second time
+		neutral-faces-dupl[i + 46] = neutral-faces[i]
+		sad-faces-dupl[i + 46] = sad-faces[i]
+		if (i < 18) {
+			happy-faces-dupl[i + 92] = happy-faces[i] // include 18 faces a third time
+			neutral-faces-dupl[i + 92] = neutral-faces[i]
+			sad-faces-dupl[i + 92] = sad-faces[i]
+		}
+	}
+	
+	task-stimuli = []
+	
+	for i in 0 to 109 {
+		task-stimuli[i] = happy-faces-dupl[i]
+		task-stimuli[i + 110] = neutral-faces-dupl[i]
+		task-stimuli[i + 220] = sad-faces-dupl[i]
+	}
+	
+	task-stimuli = shuffle(task-stimuli)
+	
+	
+	// There are 6 blocks of 55 trials
+	blocks = []
+	
+	block1 = []
+	block2 = []
+	block3 = []
+	block4 = []
+	block5 = []
+	block6 = []
+	
+	// Put 55 trials in each of the six blocks
+	// Trials are drawn randomly from the complete list
+	for i in 0 to 54 {
+		block1[i] = task-stimuli[i]
+		block2[i] = task-stimuli[i + 55]
+		block3[i] = task-stimuli[i + 110]
+		block4[i] = task-stimuli[i + 165]
+		block5[i] = task-stimuli[i + 220]
+		block6[i] = task-stimuli[i + 275]
+	}
+	
+	blocks[0] = block1
+	blocks[1] = block2
+	blocks[2] = block3
+	blocks[3] = block4
+	blocks[4] = block5
+	blocks[5] = block6
+	
+	if (verbose) {
+		print("Setting up 2-back task...")
+		print("Randomly created 6 blocks of trials:")
+		blocknum = 1
+		for block in blocks {
+			print()
+			print("BLOCK ", blocknum)
+			blocknum = blocknum + 1
+			print("______________________________________")
+			print("EXPRESSION        FACE")
+			print("______________________________________")
+			trialnum = 0
+			expressions = [0, 0, 0]
+			expr = ""
+			for trial in block {
+				expression = trial[0]
+				face = trial[1]
+				if (expression == "happy") {
+					expressions[0] = expressions[0] + 1
+					expr = "hap"
+				}
+				if (expression == "neutral") {
+					expressions[1] = expressions[1] + 1
+					expr = "neu"
+				}
+				if (expression == "sad") {
+					expressions[2] = expressions[2] + 1
+					expr = "sad"
+				}
+				print(expr, "                        ", face)
+				
+				trialnum = trialnum + 1
+			}
+			print("______________________________________")
+			print("(", trialnum, "trials. Happy:", expressions[0], " Neutral:", expressions[1], " Sad:", expressions[2], ")")
+			print("______________________________________")
+		}
+	}
+	
+	
+	// Create off-task memories
+	// Slots:
+	// title (e.g. memoryhappy1): for convenience.
+	// memory: indicates chunk type; used as first retrieval cue.
+	// self: used as an additional retrieval cue (without it we get weird retrievals of random singletons due to partial matching).
+	// name (e.g. ha1): distinguishes one happy memory from another (i.e. the specific content).
+	// mood (e.g. happy): describes mood of the memory. This part of the memory is placed in WM to spread activation.
+	
+	// Strength of association between mood chunks and corresponding memory chunks
+	sji_mood_to_memory = 1
+	
+	for i in 0 to 10 {
+		memoryhappy = "memoryhappy" + i
+		name = "ha" + i
+		add-dm(memoryhappy, "memory", "self", name, "happy")
+		set-sji("happy", memoryhappy, sji_mood_to_memory)
+		
+		memoryneutral = "memoryneutral" + i
+		name = "ne" + i
+		add-dm(memoryneutral, "memory", "self", name, "neutral")
+		set-sji("neutral", memoryneutral, sji_mood_to_memory)
+		
+		memorysad = "memorysad" + i
+		name = "sa" + i
+		add-dm(memorysad, "memory", "self", name, "sad")
+		set-sji("sad", memorysad, sji_mood_to_memory)
+	}
+	
+	operator-activation = 1
+	
+	task-operators = [
+		"get-old-two-back",
+		"modify-old-two-back",
+		"cannot-retrieve-old-two-back",
+		"get-old-one-back",
+		"modify-old-one-back",
+		"cannot-retrieve-old-one-back",
+		"get-old-zero-back",
+		"modify-old-zero-back",
+		"push-modified-old-zero-back",
+		"cannot-retrieve-old-zero-back",
+		"process-face",
+		"recognise-face",
+		"get-two-back",
+		"two-back-matches",
+		"two-back-does-not-match",
+		"cannot-retrieve-two-back",
+		"respond-same",
+		"respond-diff",
+		"rehearse-but-not-really",
+		"focus-on-fixation"
+	]
+	
+	for task-op in task-operators {
+		set-activation(task-op, operator-activation)
+	}
+	
+	
+	//////////////////////
+	/// RUN EXPERIMENT ///
+	//////////////////////
+	
+	if (verbose) {
+		print()
+		print("Running experiment...")
+	}
+
+	// The experiment consists of 3 blocks
+	blocknum = 0
+	for block in blocks {
+		
+		blocknum = blocknum + 1
+		
+		if (verbose) {
+			print("______________________________________")
+			print("Starting block", blocknum)
+			print("______________________________________")
+		}
+		
+		// Each block contains 55 trials
+		trialnum = 0
+		for trial in block {
+			trialnum = trialnum + 1
+			expression = trial[0]
+			face = trial[1]
+			response = "none"
+			
+			starttime = time()
+			
+			if (verbose) {
+				print("______________________________________")
+				print("Trial", trialnum, "expression:", expression, "time:", time())
+				print("______________________________________")
+			}
+				
+			// show face stimulus					
+			screen("face", face)
+			
+			// The face stimulus is on screen for 2.0 seconds
+			run-until-relative-time-or-action(12.0, "press-key")
+			rt = time() - starttime
+			timeleft = 12.0 - rt
+			if (verbose) {
+				print("----- TIME LEFT: ", timeleft)
+			}
+			
+			
+			// Retrieve the model's latest action (which contains its response or lack thereof)
+			action = last-action()
+			if (length(action) > 1) {
+				response = action[1]				
+			}
+			if (verbose) {
+				print("Action:", response)
+			}
+			
+			// If the model was done running before the 2 seconds were up, it responded on time
+			if (timeleft > 0) {
+				
+				// Show "done" on the screen so that the model does not respond again
+				screen("face", face, "done")
+				
+				// Run the model for the remainder of the two seconds
+				run-relative-time(timeleft)
+			
+			} else {
+				// The model did not respond within 2 seconds
+				if (verbose) {
+					print("No response within 2s time limit.")
+				}
+			}
+			
+			// There is a 0.5 second interval between trials, in which the screen is empty (here fixation)
+			screen("fixation")
+
+			run-relative-time(0.5)
+		}
+	
+	}
+
+}
