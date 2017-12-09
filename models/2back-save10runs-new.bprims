@@ -1,0 +1,3 @@
+repeat 1
+	run emotional-two-back-new emotional-two-back-new 10
+	save-image emotional-two-back-10-runs-new

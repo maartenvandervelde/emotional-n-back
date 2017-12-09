@@ -1,21 +1,27 @@
 
 
-define task emotional-two-back {
+define task emotional-two-back-new {
 
-	initial-goals: (do-two-back)
+	initial-goals: (update-rehearsal-loop)
+	goals: (process-stimulus make-response prepare)
 
-	rt: -10 // retrieval threshold (default: -2)
-	retrieval-reinforces: t // default: nil
+	rt: -5 // retrieval threshold (default: -2)
+	//retrieval-reinforces: t // default: nil
+	ans: 0 // no activation noise
 	production-prim-latency: 0.05 // default: 0.3
-	imaginal-delay: 0 // default: 0.2
+	imaginal-delay: 0.0 // default: 0.2
+	lf: 0.1 // latency factor (default: 0.2)
+	le: 0.1 // latency exponent -- taken from ACT-R, but here applies just to retrieval failures (default: 1.0)
 	
-
+	default-activation: 2.0 // default: none
+	
+	
 }
 
 
 
-define goal do-two-back {
-
+//define goal do-two-back {
+define goal update-rehearsal-loop {
 
 	//-------------------------------------------------//
 	// Stage 1: update the items in the rehearsal loop //
@@ -23,9 +29,10 @@ define goal do-two-back {
 	
 	operator get-old-two-back {
 		"Retrieve the old 2-back observation from DM"
+		G1 = update-rehearsal-loop
+		G3 = nil
 		V1 = face
 		V3 = nil
-		G3 = nil
 		==>
 		face-observation -> RT1
 		two-back -> RT2
@@ -41,7 +48,12 @@ define goal do-two-back {
 		face-observation -> WM1
 		old -> WM2
 		RT3 -> WM3
+		RT4 -> WM4
 				
+		//update-one-back -> G3
+		face-observation -> RT1
+		one-back -> RT2
+		
 		update-one-back -> G3
 	}
 	
@@ -50,78 +62,106 @@ define goal do-two-back {
 		G3 = update-two-back
 		RT1 = error
 		==>
+		face-observation -> RT1
+		one-back -> RT2
+		
 		update-one-back -> G3
 	}
 	
 	
-	operator get-old-one-back {
-		"Retrieve the old 1-back observation from DM"
-		G3 = update-one-back
-		==>
-		face-observation -> RT1
-		one-back -> RT2
-	}
+	//operator get-old-one-back {
+	//	"Retrieve the old 1-back observation from DM"
+	//	G3 = update-one-back
+	//	==>
+	//	face-observation -> RT1
+	//	one-back -> RT2
+	//	
+	//	modify-one-back -> G3
+	//}
 	
 	operator modify-old-one-back {
 		"Create a modified version of the old 1-back observation"
+		//G3 = modify-one-back
+		G3 = update-one-back
 		RT1 = face-observation
 		RT2 = one-back
 		==>
 		face-observation -> WM1
 		two-back -> WM2
 		RT3 -> WM3
+		RT4 -> WM4
+		
+		face-observation -> RT1
+		zero-back -> RT2
 				
 		update-zero-back -> G3
 	}
 	
 	operator cannot-retrieve-old-one-back {
 		"Retrieving the old 1-back failed, so move on to the old 0-back"
+		//G3 = modify-one-back
 		G3 = update-one-back
 		RT1 = error
 		==>
+		face-observation -> RT1
+		zero-back -> RT2
+		
 		update-zero-back -> G3
 	}
 	
-	operator get-old-zero-back {
-		"Retrieve the old 0-back observation from DM"
-		G3 = update-zero-back
-		==>
-		face-observation -> RT1
-		zero-back -> RT2
-	}
+	//operator get-old-zero-back {
+	//	"Retrieve the old 0-back observation from DM"
+	//	G3 = update-zero-back
+	//	==>
+	//	face-observation -> RT1
+	//	zero-back -> RT2
+	//	
+	//	modify-zero-back -> G3
+	//}
 	
 	operator modify-old-zero-back {
 		"Create a modified version of the old 0-back observation"
+		//G3 = modify-zero-back
+		G3 = update-zero-back
 		RT1 = face-observation
 		RT2 = zero-back
 		==>
 		face-observation -> WM1
 		one-back -> WM2
 		RT3 -> WM3
+		RT4 -> WM4
 		
-		push-zero-back -> G3
+		//push-zero-back -> G3
+		process-stimulus -> G1
+		nil -> G3
 	}
 	
-	operator push-modified-old-zero-back {
-		"Push the modified version of the 0-back observation from WM to DM"
-		WM1 = face-observation
-		WM2 = one-back
-		WM3 = RT3
-		==>
-		nil -> WM1
-	}
+	//operator push-modified-old-zero-back {
+	//	"Push the modified version of the 0-back observation from WM to DM"
+	//	G3 = push-zero-back
+	//	WM1 = face-observation
+	//	WM2 = one-back
+	//	==>
+	//	nil -> WM1
+	//			
+	//	process-stimulus -> G1
+	//	nil -> G3
+	//}
 	
 	
 	operator cannot-retrieve-old-zero-back {
 		"Retrieving the old 0-back failed, so move on to next stage"
+		//G3 = modify-zero-back
 		G3 = update-zero-back
 		RT1 = error
 		==>
-		attend-stimulus -> G3
+		process-stimulus -> G1
+		nil -> G3
 	}
 	
-	
-	
+}
+
+define goal process-stimulus {
 	
 	//---------------------------------------//
 	// Stage 2: process the current stimulus //
@@ -129,30 +169,34 @@ define goal do-two-back {
 	
 	operator process-face {
 		"Begin a retrieval to identify the facial expression of the current stimulus"
+		G1 = process-stimulus
 		V1 = face
 		V3 = nil
-		G3 = attend-stimulus
+		RT1 = nil
 		==>
 		face-expression -> RT1
 		V2 -> RT3
 		
-		process-stimulus -> G3
+		recognise-stimulus -> G3
 	}
 	
 	operator recognise-face {
 		"Create a WM chunk for the recognised face"
+		G3 = recognise-stimulus
 		RT1 = face-expression
-		G3 = process-stimulus
 		==>
 		face-observation -> WM1
 		zero-back -> WM2
 		RT2 -> WM3
+		ASSIGN_NEW_CONTEXT_LABEL -> WM4
 		
-		determine-response -> G3
+		make-response -> G1
+		nil -> G3
 	}
-	
-	
-	
+		
+}
+
+define goal make-response {
 	
 	//----------------------------------------//
 	// Stage 3: work out the correct response //
@@ -160,90 +204,104 @@ define goal do-two-back {
 	
 	operator get-two-back {
 		"Retrieve the 2-back observation"
-		G3 = determine-response
+		G1 = make-response
+		RT1 = nil
 		==>
 		face-observation -> RT1
 		two-back -> RT2
 	}
 	
 	operator two-back-matches {
-		"The current observation (in WM) matches the mood of the 2-back observation (in RT), so encode the intention to respond SAME in a slot of the goal buffer. Also push the current observation from WM to DM."
-		G3 = determine-response
+		"The current observation (in WM) matches the mood of the 2-back observation (in RT), so respond SAME. Also push the current observation from WM to DM."
+		G1 = make-response
 		RT1 = face-observation
 		RT2 = two-back
 		RT3 = WM3
 		==>
 		nil -> WM1
 		
-		respond-same -> G3
+		//execute-response -> G1
+		//respond-same -> G3
+		
+ 		press-key -> AC1
+ 		same -> AC2
+		
+		prepare -> G1
+		nil -> G3
+		
+		
 	}
 	
 	operator two-back-does-not-match {
-		"The current observation (in WM) does not match the mood of the 2-back observation (in RT), so encode the intention to respond DIFF in a slot of the goal buffer. Also push the current observation from WM to DM."
-		G3 = determine-response
+		"The current observation (in WM) does not match the mood of the 2-back observation (in RT), so respond DIFF. Also push the current observation from WM to DM."
+		G1 = make-response
 		RT1 = face-observation
 		RT2 = two-back
 		RT3 <> WM3
 		==>
 		nil -> WM1
 		
-		respond-diff -> G3
+		//execute-response -> G1
+		//respond-diff -> G3
+		
+ 		press-key -> AC1
+ 		diff -> AC2
+		
+		prepare -> G1
+		nil -> G3
+		
 	}
 	
 	operator cannot-retrieve-two-back {
 		"The 2-back observation cannot be retrieved, so don't respond"
-		G3 = determine-response
+		G1 = make-response
 		RT1 = error
 		==>
-		rehearse -> G3
-	}
-	
-	
-	
-	
-	//-------------------------------//
-	// Stage 4: execute the response //
-	//-------------------------------//
-	
-	operator respond-same {
-		"The goal buffer contains the intention to respond SAME, so press the corresponding button"
-		G3 = respond-same
-		V3 = nil
-		==>
- 		press-key -> AC1
- 		same -> AC2
+		nil -> WM1
 		
-		rehearse -> G3
+		prepare -> G1
 	}
 	
-	operator respond-diff {
-		"The goal buffer contains the intention to respond DIFF, so press the corresponding button"
-		G3 = respond-diff
-		V3 = nil
-		==>
- 		press-key -> AC1
- 		diff -> AC2		
+}
+
+
+//define goal execute-response {
+//	
+//	//-------------------------------//
+//	// Stage 4: execute the response //
+//	//-------------------------------//
+//	
+//	operator respond-same {
+//		"The goal buffer contains the intention to respond SAME, so press the corresponding button"
+//		G3 = respond-same
+//		V3 = nil
+//		==>
+// 		press-key -> AC1
+// 		same -> AC2
+//		
+//		prepare -> G1
+//		nil -> G3
+//	}
+//	
+//	operator respond-diff {
+//		"The goal buffer contains the intention to respond DIFF, so press the corresponding button"
+//		G3 = respond-diff
+//		V3 = nil
+//		==>
+// 		press-key -> AC1
+// 		diff -> AC2		
+//		
+//		prepare -> G1
+//		nil -> G3
+//	}
+//	
+//}
+
+	
+	
+
+define goal prepare {
 		
-		rehearse -> G3
-	}
-	
-	
-	
-	
-	//-------------------//
-	// Stage 5: rehearse //
-	//-------------------//
-	
-	
-	operator rehearse-but-not-really {
-		G3 = rehearse
-		==>
-		nil -> G3
-	}
-	
-	
-	
-	
 	//----------------------------//
 	// Stage 0: focus on fixation //
 	//----------------------------//
@@ -256,6 +314,7 @@ define goal do-two-back {
 		
 		nil -> WM1
 		
+		update-rehearsal-loop -> G1
 		nil -> G3
 	}
 	
@@ -272,7 +331,7 @@ define facts {
 
 
 define action press-key {
-  latency: 0.4 
+  latency: 0.2 
   noise: 0.1
   distribution: uniform
   output: Pressing
@@ -280,7 +339,7 @@ define action press-key {
 
 
 define action focus {
-  latency: 0.3
+  latency: 0.2
   noise: 0.1
   distribution: uniform
   output: Focussing
@@ -486,18 +545,18 @@ define script {
 		set-sji("sad", memorysad, sji_mood_to_memory)
 	}
 	
-	operator-activation = 1
+	operator-activation = 2
 	
 	task-operators = [
 		"get-old-two-back",
 		"modify-old-two-back",
 		"cannot-retrieve-old-two-back",
-		"get-old-one-back",
+		//"get-old-one-back",
 		"modify-old-one-back",
 		"cannot-retrieve-old-one-back",
-		"get-old-zero-back",
+		//"get-old-zero-back",
 		"modify-old-zero-back",
-		"push-modified-old-zero-back",
+		//"push-modified-old-zero-back",
 		"cannot-retrieve-old-zero-back",
 		"process-face",
 		"recognise-face",
@@ -505,9 +564,8 @@ define script {
 		"two-back-matches",
 		"two-back-does-not-match",
 		"cannot-retrieve-two-back",
-		"respond-same",
-		"respond-diff",
-		"rehearse-but-not-really",
+		//"respond-same",
+		//"respond-diff",
 		"focus-on-fixation"
 	]
 	
@@ -549,7 +607,7 @@ define script {
 			
 			if (verbose) {
 				print("______________________________________")
-				print("Trial", trialnum, "expression:", expression, "time:", time())
+				print("Trial", trialnum, "expression:", expression, "time:", starttime)
 				print("______________________________________")
 			}
 				
@@ -557,9 +615,9 @@ define script {
 			screen("face", face)
 			
 			// The face stimulus is on screen for 2.0 seconds
-			run-until-relative-time-or-action(12.0, "press-key")
+			run-until-relative-time-or-action(2.0, "press-key")
 			rt = time() - starttime
-			timeleft = 12.0 - rt
+			timeleft = 2.0 - rt
 			if (verbose) {
 				print("----- TIME LEFT: ", timeleft)
 			}
@@ -595,6 +653,9 @@ define script {
 
 			run-relative-time(0.5)
 		}
+
+		remove-chunks-created-by-model()
+		trial-end()
 	
 	}
 
