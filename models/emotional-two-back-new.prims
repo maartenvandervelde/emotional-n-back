@@ -2,7 +2,7 @@
 
 define task emotional-two-back-new {
 
-	initial-goals: (update-rehearsal-loop)
+	initial-goals: (update-rehearsal-loop wander)
 	goals: (process-stimulus make-response prepare)
 
 	rt: -5 // retrieval threshold (default: -2)
@@ -10,10 +10,12 @@ define task emotional-two-back-new {
 	ans: 0 // no activation noise
 	production-prim-latency: 0.05 // default: 0.3
 	imaginal-delay: 0.0 // default: 0.2
-	lf: 0.1 // latency factor (default: 0.2)
+	//lf: 0.1 // latency factor (default: 0.2)
 	le: 0.1 // latency exponent -- taken from ACT-R, but here applies just to retrieval failures (default: 1.0)
 	
 	default-activation: 2.0 // default: none
+	
+	default-operator-self-assoc: -3 // avoid operators firing repeatedly
 	
 	
 }
@@ -69,15 +71,16 @@ define goal update-rehearsal-loop {
 	}
 	
 	
-	//operator get-old-one-back {
-	//	"Retrieve the old 1-back observation from DM"
-	//	G3 = update-one-back
-	//	==>
-	//	face-observation -> RT1
-	//	one-back -> RT2
-	//	
-	//	modify-one-back -> G3
-	//}
+	operator get-old-one-back {
+		"Retrieve the old 1-back observation from DM"
+		G3 = update-one-back
+		RT1 = nil
+		==>
+		face-observation -> RT1
+		one-back -> RT2
+		
+		nil -> WM1
+	}
 	
 	operator modify-old-one-back {
 		"Create a modified version of the old 1-back observation"
@@ -109,16 +112,6 @@ define goal update-rehearsal-loop {
 		update-zero-back -> G3
 	}
 	
-	//operator get-old-zero-back {
-	//	"Retrieve the old 0-back observation from DM"
-	//	G3 = update-zero-back
-	//	==>
-	//	face-observation -> RT1
-	//	zero-back -> RT2
-	//	
-	//	modify-zero-back -> G3
-	//}
-	
 	operator modify-old-zero-back {
 		"Create a modified version of the old 0-back observation"
 		//G3 = modify-zero-back
@@ -135,19 +128,6 @@ define goal update-rehearsal-loop {
 		process-stimulus -> G1
 		nil -> G3
 	}
-	
-	//operator push-modified-old-zero-back {
-	//	"Push the modified version of the 0-back observation from WM to DM"
-	//	G3 = push-zero-back
-	//	WM1 = face-observation
-	//	WM2 = one-back
-	//	==>
-	//	nil -> WM1
-	//			
-	//	process-stimulus -> G1
-	//	nil -> G3
-	//}
-	
 	
 	operator cannot-retrieve-old-zero-back {
 		"Retrieving the old 0-back failed, so move on to next stage"
@@ -220,9 +200,6 @@ define goal make-response {
 		==>
 		nil -> WM1
 		
-		//execute-response -> G1
-		//respond-same -> G3
-		
  		press-key -> AC1
  		same -> AC2
 		
@@ -240,9 +217,6 @@ define goal make-response {
 		RT3 <> WM3
 		==>
 		nil -> WM1
-		
-		//execute-response -> G1
-		//respond-diff -> G3
 		
  		press-key -> AC1
  		diff -> AC2
@@ -264,38 +238,6 @@ define goal make-response {
 	
 }
 
-
-//define goal execute-response {
-//	
-//	//-------------------------------//
-//	// Stage 4: execute the response //
-//	//-------------------------------//
-//	
-//	operator respond-same {
-//		"The goal buffer contains the intention to respond SAME, so press the corresponding button"
-//		G3 = respond-same
-//		V3 = nil
-//		==>
-// 		press-key -> AC1
-// 		same -> AC2
-//		
-//		prepare -> G1
-//		nil -> G3
-//	}
-//	
-//	operator respond-diff {
-//		"The goal buffer contains the intention to respond DIFF, so press the corresponding button"
-//		G3 = respond-diff
-//		V3 = nil
-//		==>
-// 		press-key -> AC1
-// 		diff -> AC2		
-//		
-//		prepare -> G1
-//		nil -> G3
-//	}
-//	
-//}
 
 	
 	
@@ -322,6 +264,33 @@ define goal prepare {
 
 
 
+define goal wander {
+	
+	//----------------//
+	// Mind-wandering //
+	//----------------//
+	
+	operator linger-on-sad-old-two-back(activation=2.5) {
+		WM1 = face-observation
+		WM2 = old
+		WM3 = sad
+		==>
+		linger -> AC1
+		WM3 -> AC2
+	}
+	
+	
+//	operator linger-on-happy-old-two-back(activation=2.5) {
+//		WM1 = face-observation
+//		WM2 = old
+//		WM3 = happy
+//		==>
+//		linger -> AC1
+//		WM3 -> AC2
+//	}
+	
+}
+
 
 
 define facts {		
@@ -345,6 +314,13 @@ define action focus {
   output: Focussing
 }
 
+
+define action linger {
+	latency: 0.05
+	noise: 0.0
+	distribution: uniform
+	output: Lingering
+}
 
 
 define script {	
@@ -373,9 +349,6 @@ define script {
 	// Combine all stimuli in a single list
 	all-faces = []
 	for i in 0 to 45 {
-		// all-faces[i] = ["happy", happy-faces[i]]
-		// all-faces[i + 46] = ["neutral", neutral-faces[i]]
-		// all-faces[i + 92] = ["sad", sad-faces[i]]
 		all-faces[i] = happy-faces[i]		
 		all-faces[i + 46] = neutral-faces[i]
 		all-faces[i + 92] = sad-faces[i]	
@@ -395,22 +368,22 @@ define script {
 	
 	
 		// set activation of face depending on its mood
-		//face_activation_happy = -3
-		//face_activation_neutral = -3
-		//face_activation_sad = -1.5
+		face_activation_happy = 2
+		face_activation_neutral = 1
+		face_activation_sad = 4
 	    
 		if (expression == "happy") {
-			//set-activation(chunk-name, face_activation_happy)
+			set-activation(chunk-name, face_activation_happy)
 			set-sji("happy", chunk-name, sji_mood_to_face)
 		}
 	    
 		if (expression == "neutral") {
-			//set-activation(chunk-name, face_activation_neutral)
+			set-activation(chunk-name, face_activation_neutral)
 			set-sji("neutral", chunk-name, sji_mood_to_face)
 		}
 	    
 		if (expression == "sad") {
-			//set-activation(chunk-name, face_activation_sad)
+			set-activation(chunk-name, face_activation_sad)
 			set-sji("sad", chunk-name, sji_mood_to_face)
 		}
 	}
@@ -551,12 +524,10 @@ define script {
 		"get-old-two-back",
 		"modify-old-two-back",
 		"cannot-retrieve-old-two-back",
-		//"get-old-one-back",
+		"get-old-one-back",
 		"modify-old-one-back",
 		"cannot-retrieve-old-one-back",
-		//"get-old-zero-back",
 		"modify-old-zero-back",
-		//"push-modified-old-zero-back",
 		"cannot-retrieve-old-zero-back",
 		"process-face",
 		"recognise-face",
@@ -564,8 +535,6 @@ define script {
 		"two-back-matches",
 		"two-back-does-not-match",
 		"cannot-retrieve-two-back",
-		//"respond-same",
-		//"respond-diff",
 		"focus-on-fixation"
 	]
 	
