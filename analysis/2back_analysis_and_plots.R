@@ -9,8 +9,6 @@
 ###   SETUP   ###
 #################
 
-rm(list=ls(all=T))
-
 library(tidyverse)
 library(magrittr)
 library(stringr)
@@ -20,7 +18,7 @@ library(qgraph)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = TRUE # set to TRUE to save .tex versions of the plots
+use_tikz = FALSE # set to TRUE to save .tex versions of the plots
 
 data_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/data/"
 fig_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/fig/"
@@ -45,12 +43,15 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-file_dir_1 <- paste0(data_path, "20171204d")
-file_dir_2 <- paste0(data_path, "20171204e")
+#file_dir_control <- paste0(data_path, "20171204b")
+#file_dir_depressed <- paste0(data_path, "20171204d")
+file_dir_control <- paste0(data_path, "2backnew/20171211")
+file_dir_depressed <- paste0(data_path, "2backnew/20171219c")
+
 
 beh_files <- c()
-beh_files[1] <- tail(list.files(path = file_dir_1, pattern="beh.csv", full.names = TRUE),1)
-beh_files[2] <- tail(list.files(path = file_dir_2, pattern="beh.csv", full.names = TRUE),1)
+beh_files[1] <- tail(list.files(path = file_dir_control, pattern="beh.csv", full.names = TRUE),1)
+beh_files[2] <- tail(list.files(path = file_dir_depressed, pattern="beh.csv", full.names = TRUE),1)
 
 behdatfull <- data.frame()
 for (i in 1:length(beh_files)) {
@@ -290,19 +291,22 @@ if (use_tikz) {
 
 ## Plot just the conditions with differences between groups
 zrtdat.all.selection <- zrtdat.all %>%
-  filter(condition == "break" & valence == "happy" | condition == "break" & valence == "sad" | condition == "noset" & valence == "sad")
+  #filter(condition == "break" & valence == "happy" | condition == "break" & valence == "sad" | condition == "noset" & valence == "sad")
+  filter(condition %in% c("break")) %>%
+  mutate(valence = factor(valence, levels = c("sad", "neutral", "happy")))
 
 if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseTimeZselection.tex"), width = 6, height = 3)
 }
 
 plot <- ggplot(zrtdat.all.selection, aes(x = valence, y = z.rt.mean, group = type, fill= type)) +
-  facet_grid(~condition, scales = "free", space = "free_x", labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
+  #facet_grid(~condition, scales = "free", space = "free_x", labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=z.rt.mean-z.rt.sd, ymax=z.rt.mean+z.rt.sd), width=0.2, position = position_dodge(width = 0.9)) +
-  labs(x = "Condition", y = "z-transformed mean RT") +
-  fillScale
+  labs(x = "", y = "z-transformed mean RT") +
+  fillScale +
+  guides(fill = FALSE)
 
 print(plot)
 if (use_tikz) {
@@ -318,8 +322,8 @@ if (use_tikz) {
 ## How pervasive is mind-wandering?
 
 op_files <- c()
-op_files[1] <- tail(list.files(path = file_dir_1, pattern="ops.csv", full.names = TRUE),1)
-op_files[2] <- tail(list.files(path = file_dir_2, pattern="ops.csv", full.names = TRUE),1)
+op_files[1] <- tail(list.files(path = file_dir_control, pattern="ops.csv", full.names = TRUE),1)
+op_files[2] <- tail(list.files(path = file_dir_depressed, pattern="ops.csv", full.names = TRUE),1)
 
 opdatfull <- data.frame()
 for (i in 1:length(op_files)) {
@@ -696,8 +700,8 @@ calc.trans.probs(opdatdepr, "operator") %>%
 
 
 mem_files <- c()
-mem_files[1] <- tail(list.files(path = file_dir_1, pattern="mems.csv", full.names = TRUE),1)
-mem_files[2] <- tail(list.files(path = file_dir_2, pattern="mems.csv", full.names = TRUE),1)
+mem_files[1] <- tail(list.files(path = file_dir_control, pattern="mems.csv", full.names = TRUE),1)
+mem_files[2] <- tail(list.files(path = file_dir_depressed, pattern="mems.csv", full.names = TRUE),1)
 
 memdatfull <- data.frame()
 for (i in 1:length(mem_files)) {
@@ -826,4 +830,55 @@ attention_span_length
 
 
 
+
+### Summary plots
+
+## response rate
+
+respdat.summarised <- respdat.all %>%
+  group_by(type) %>%
+  summarise(rr = mean(rr.mean), rr.sd = sd(rr.mean)) %>%
+  mutate(group = c("control", "control", "depressed", "depressed"))
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backRRsummary.tex"), width = 6, height = 3)
+}
+
+plot <- ggplot(respdat.summarised, aes(x = group, y = rr, group_by(group), fill = type)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=rr-rr.sd, ymax=rr+rr.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "", y = "Response rate") +
+  fillScale + 
+  guides(fill=FALSE)
+
+print(plot)
+if (use_tikz) {
+  dev.off()
+}
+
+## accuracy
+
+accdat.summarised <- acc.by.condition.all %>%
+  group_by(type) %>%
+  summarise(acc = mean(acc.mean), acc.sd = sd(acc.sd)) %>%
+  mutate(group = c("control", "control", "depressed", "depressed"))
+
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backAccsummary.tex"), width = 6, height = 3)
+}
+
+ggplot(accdat.summarised, aes(x = group, y = acc, group_by(group), fill = type)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=acc-acc.sd, ymax=acc+acc.sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "", y = "Accuracy") +
+  fillScale + 
+  guides(fill=FALSE)
+
+print(plot)
+if (use_tikz) {
+  dev.off()
+}
 

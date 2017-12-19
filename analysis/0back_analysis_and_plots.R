@@ -45,8 +45,8 @@ lgdat$response <- factor(lgdat$response, levels = rev(levels(lgdat$response)))
 ### Read in data for control and depressed models
 
 # file_dir <- paste0(data_path, "20171011") # location of two sets of model output files
-file_dir_1 <- paste0(data_path, "01204copy")
-file_dir_2 <- paste0(data_path, "01204")
+file_dir_1 <- paste0(data_path, "01204")
+file_dir_2 <- paste0(data_path, "01205")
 
 
 # beh_files <- tail(list.files(path = file_dir, pattern="beh.csv", full.names = TRUE),2)
