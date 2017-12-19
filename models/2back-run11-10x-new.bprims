@@ -1,4 +1,4 @@
-repeat 3
+repeat 10
 	load-image emotional-two-back-10-runs-new
 	run emotional-two-back-new-test emotional-two-back-new-test 1
 	reset

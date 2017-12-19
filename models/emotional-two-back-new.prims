@@ -2,27 +2,24 @@
 
 define task emotional-two-back-new {
 
+	// Goals
 	initial-goals: (update-rehearsal-loop wander)
 	goals: (process-stimulus make-response prepare)
 
+	// Activation-related settings
+	default-activation: 2.0 // lower bound on baselevel activation (default: none)
+	ans: 0 // activation noise (default: 0.2)
 	rt: -5 // retrieval threshold (default: -2)
-	//retrieval-reinforces: t // default: nil
-	ans: 0 // no activation noise
-	production-prim-latency: 0.05 // default: 0.3
-	imaginal-delay: 0.0 // default: 0.2
-	//lf: 0.1 // latency factor (default: 0.2)
-	le: 0.1 // latency exponent -- taken from ACT-R, but here applies just to retrieval failures (default: 1.0)
+	le: 0.1 // latency exponent -- taken from ACT-R, but here it applies just to retrieval failures (default: 1.0)
+	default-operator-self-assoc: -3 // spreading activation from an operator to itself (discourage operators firing repeatedly) (default: -1.0)
 	
-	default-activation: 2.0 // default: none
-	
-	default-operator-self-assoc: -3 // avoid operators firing repeatedly
-	
-	
+	// Timing-related settings
+	production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
+	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)
 }
 
 
 
-//define goal do-two-back {
 define goal update-rehearsal-loop {
 
 	//-------------------------------------------------//
@@ -52,7 +49,6 @@ define goal update-rehearsal-loop {
 		RT3 -> WM3
 		RT4 -> WM4
 				
-		//update-one-back -> G3
 		face-observation -> RT1
 		one-back -> RT2
 		
@@ -84,7 +80,6 @@ define goal update-rehearsal-loop {
 	
 	operator modify-old-one-back {
 		"Create a modified version of the old 1-back observation"
-		//G3 = modify-one-back
 		G3 = update-one-back
 		RT1 = face-observation
 		RT2 = one-back
@@ -102,7 +97,6 @@ define goal update-rehearsal-loop {
 	
 	operator cannot-retrieve-old-one-back {
 		"Retrieving the old 1-back failed, so move on to the old 0-back"
-		//G3 = modify-one-back
 		G3 = update-one-back
 		RT1 = error
 		==>
@@ -114,7 +108,6 @@ define goal update-rehearsal-loop {
 	
 	operator modify-old-zero-back {
 		"Create a modified version of the old 0-back observation"
-		//G3 = modify-zero-back
 		G3 = update-zero-back
 		RT1 = face-observation
 		RT2 = zero-back
@@ -124,14 +117,12 @@ define goal update-rehearsal-loop {
 		RT3 -> WM3
 		RT4 -> WM4
 		
-		//push-zero-back -> G3
 		process-stimulus -> G1
 		nil -> G3
 	}
 	
 	operator cannot-retrieve-old-zero-back {
 		"Retrieving the old 0-back failed, so move on to next stage"
-		//G3 = modify-zero-back
 		G3 = update-zero-back
 		RT1 = error
 		==>
@@ -300,23 +291,23 @@ define facts {
 
 
 define action press-key {
-  latency: 0.2 
-  noise: 0.1
+  latency: 0.15 
+  noise: 0.05
   distribution: uniform
   output: Pressing
 }
 
 
 define action focus {
-  latency: 0.2
-  noise: 0.1
+  latency: 0.15
+  noise: 0.05
   distribution: uniform
   output: Focussing
 }
 
 
 define action linger {
-	latency: 0.05
+	latency: 0.0
 	noise: 0.0
 	distribution: uniform
 	output: Lingering
@@ -367,7 +358,7 @@ define script {
 		sji_mood_to_face = 1 // in practice the actual SA is 1/4 of this value (since there are 4 slots in the goal buffer)
 	
 	
-		// set activation of face depending on its mood
+		// Set activation of face chunks depending on their expression (so some faces are recognised faster than others)
 		face_activation_happy = 2
 		face_activation_neutral = 1
 		face_activation_sad = 4
@@ -433,7 +424,7 @@ define script {
 	block6 = []
 	
 	// Put 55 trials in each of the six blocks
-	// Trials are drawn randomly from the complete list
+	// Trials are drawn from the shuffled complete list
 	for i in 0 to 54 {
 		block1[i] = task-stimuli[i]
 		block2[i] = task-stimuli[i + 55]
@@ -623,7 +614,9 @@ define script {
 			run-relative-time(0.5)
 		}
 
+		// Finish each block by removing the rehearsal loop chunks from DM
 		remove-chunks-created-by-model()
+		
 		trial-end()
 	
 	}

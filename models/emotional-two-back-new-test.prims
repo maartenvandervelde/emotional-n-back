@@ -2,44 +2,43 @@
 
 define task emotional-two-back-new-test {
 
+	// Goals
 	initial-goals: (update-rehearsal-loop wander)
 	goals: (process-stimulus make-response prepare)
 
+	// Activation-related settings
+	default-activation: 2.0 // lower bound on baselevel activation (default: none)
+	ans: 0.02 // activation noise (default: 0.2)
 	rt: -5 // retrieval threshold (default: -2)
-	//retrieval-reinforces: t // default: nil
-	ans: 0.02 // less activation noise
-	production-prim-latency: 0.05 // default: 0.3
-	imaginal-delay: 0.0 // default: 0.2
-	//lf: 0.2 // latency factor (default: 0.2)
-	le: 0.1 // latency exponent -- taken from ACT-R, but here applies just to retrieval failures (default: 1.0)
+	le: 0.1 // latency exponent -- taken from ACT-R, but here it applies just to retrieval failures (default: 1.0)
+	default-operator-self-assoc: -3 // spreading activation from an operator to itself (discourage operators firing repeatedly) (default: -1)
 	
-	default-activation: 2.0 // default: none
-	
-	default-operator-self-assoc: -3.0 // avoid operators firing repeatedly
-	
-	
+	// Timing-related settings
+	production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
+	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)
+
 }
 
 
 
 define action press-key {
-  latency: 0.2 
-  noise: 0.1
+  latency: 0.15 
+  noise: 0.05
   distribution: uniform
   output: Pressing
 }
 
 
 define action focus {
-  latency: 0.2
-  noise: 0.1
+  latency: 0.15
+  noise: 0.05
   distribution: uniform
   output: Focussing
 }
 
 
 define action linger {
-	latency: 0.05
+	latency: 0.0
 	noise: 0.0
 	distribution: uniform
 	output: Lingering
@@ -263,7 +262,9 @@ define script {
 			run-relative-time(0.5)
 		}
 
+		// Finish each block by removing the rehearsal loop chunks from DM
 		remove-chunks-created-by-model()
+		
 		trial-end()
 	
 	}
