@@ -45,8 +45,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 #file_dir_control <- paste0(data_path, "20171204b")
 #file_dir_depressed <- paste0(data_path, "20171204d")
-file_dir_control <- paste0(data_path, "2backnew/20171211")
-file_dir_depressed <- paste0(data_path, "2backnew/20171219c")
+file_dir_control <- paste0(data_path, "2backnew/20171219c")
+file_dir_depressed <- paste0(data_path, "2backnew/20171221b")
 
 
 beh_files <- c()
@@ -168,12 +168,39 @@ if (use_tikz) {
 }
 
 
+# ANOVA
+# Two-way repeated measures ANOVA, for each condition separately.
+# Factors: group (depressed/control), emotion (happy, neutral, sad).
+
+accdat.all <- behdat %>%
+  mutate(accuracy = outcome == "correct")
+
+accdat.match <- accdat.all %>%
+  filter(condition == "match")
+
+
+accdat.break <- accdat.all %>%
+  filter(condition == "break")
+
+accdat.pers <- accdat.all %>%
+  filter(condition == "pers")
+
+accdat.noset <- accdat.all %>%
+  filter(condition == "noset")
+
+summary(aov(accuracy ~ (type * valence), data = accdat.match))
+# summary(aov(accuracy ~ (type * valence) + Error(participant/valence), data = accdat.match)) # RM ANOVA
+summary(aov(accuracy ~ (type * valence), data = accdat.break))
+summary(aov(accuracy ~ (type * valence), data = accdat.pers))
+summary(aov(accuracy ~ (type * valence), data = accdat.noset))
+
 
 
 
 ## Response rate
 
 respdat <- allbehdat %>%
+  filter(rt > 0) %>%
   mutate(ontime = outcome %in% c("correct", "wrong") & rt <= 2.0 & response != "none") %>%
   group_by(participant, type, condition, valence, ontime) %>%
   tally() %>%
@@ -191,13 +218,13 @@ lg.respdat <- lgdat %>%
   select(condition, valence, rr.mean, rr.sd, type)
 
 
-respdat.all <- rbind(lg.respdat, data.frame(respdat)) %>%
+respdatall <- rbind(lg.respdat, data.frame(respdat)) %>%
   mutate(type = fct_relevel(type, "control", "control model", "depressed", "depressed model"))
 
 if (use_tikz) {
   tikz(file = paste0(fig_path, "2backResponseRate.tex"), width = 6, height = 3)
 }
-plot <- ggplot(respdat.all, aes(x = valence, y = rr.mean, group = type, fill = type)) +
+plot <- ggplot(respdatall, aes(x = valence, y = rr.mean, group = type, fill = type)) +
   facet_grid(~condition, labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
   scale_y_continuous() +
@@ -209,6 +236,37 @@ print(plot)
 if (use_tikz) {
   dev.off()
 }
+
+
+
+# ANOVA
+# Two-way repeated measures ANOVA, for each condition separately.
+# Factors: group (depressed/control), emotion (happy, neutral, sad).
+
+respdat.all <- allbehdat %>%
+  filter(rt > 0) %>%
+  mutate(responded = outcome %in% c("correct", "wrong") & rt <= 2.0 & response != "none")
+
+
+respdat.match <- respdat.all %>%
+  filter(condition == "match")
+
+respdat.break <- respdat.all %>%
+  filter(condition == "break")
+
+respdat.pers <- respdat.all %>%
+  filter(condition == "pers")
+
+respdat.noset <- respdat.all %>%
+  filter(condition == "noset")
+
+
+
+summary(aov(responded ~ (type * valence), data = respdat.match))
+summary(aov(responded ~ (type * valence), data = respdat.break))
+summary(aov(responded ~ (type * valence), data = respdat.pers))
+summary(aov(responded ~ (type * valence), data = respdat.noset))
+
 
 
 
@@ -264,6 +322,7 @@ zrtdat <- behdat %>%
   group_by(type, condition, valence) %>%
   summarise(z.rt.mean = mean(z.rt), z.rt.sd = sd(z.rt))
 
+
 lg.zrtdat <- lgdat %>%
   rename(valence = expression) %>%
   select(condition, valence, z.rt.mean, z.rt.sd, type)
@@ -312,6 +371,44 @@ print(plot)
 if (use_tikz) {
   dev.off()
 }
+
+
+
+
+# ANOVA
+# Two-way repeated measures ANOVA, for each condition separately.
+# Factors: group (depressed/control), emotion (happy, neutral, sad).
+
+zrt.all <- behdat %>%
+  select(-rt.mean, -rt.sd) %>%
+  filter(outcome == "correct") %>%
+  group_by(participant, type) %>%
+  mutate(overall.rt = mean(rt)) %>%
+  group_by(participant, type, condition, valence, overall.rt) %>%
+  mutate(condition.rt = mean(rt), condition.rt.sd = sd(rt)) %>%
+  mutate(z.rt = (condition.rt - overall.rt) / condition.rt.sd)
+
+
+zrt.match <- zrt.all %>%
+  filter(condition == "match")
+
+zrt.break <- zrt.all %>%
+  filter(condition == "break")
+
+zrt.pers <- zrt.all %>%
+  filter(condition == "pers")
+
+zrt.noset <- zrt.all %>%
+  filter(condition == "noset")
+
+
+
+summary(aov(z.rt ~ (type * valence), data = zrt.match))
+summary(aov(z.rt ~ (type * valence), data = zrt.break))
+summary(aov(z.rt ~ (type * valence), data = zrt.pers))
+summary(aov(z.rt ~ (type * valence), data = zrt.noset))
+
+
 
 
 ########################
@@ -869,7 +966,7 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "2backAccsummary.tex"), width = 6, height = 3)
 }
 
-ggplot(accdat.summarised, aes(x = group, y = acc, group_by(group), fill = type)) +
+plot <- ggplot(accdat.summarised, aes(x = group, y = acc, group_by(group), fill = type)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=acc-acc.sd, ymax=acc+acc.sd), width=0.2, position = position_dodge(width = 0.9)) +

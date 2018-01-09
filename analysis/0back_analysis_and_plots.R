@@ -132,6 +132,16 @@ if (use_tikz) {
 
 
 
+# ANOVA
+# Three-way repeated measures ANOVA.
+# Factors: group (depressed/control), emotion (happy, neutral, sad), response (same, different).
+
+summary(aov(accuracy ~ (type * stimulus * response), data = behdat))
+# summary(aov(accuracy ~ (type * stimulus * response) + Error(participant/(stimulus*response)), data = behdat)) # RM ANOVA
+
+
+
+
 ## Response rate
 
 respdat <- allbehdat %>%
@@ -172,6 +182,20 @@ if (use_tikz) {
   dev.off()
 }
 
+
+# ANOVA
+# Three-way repeated measures ANOVA.
+# Factors: group (depressed/control), emotion (happy, neutral, sad), response (same, different).
+
+resp.all <- allbehdat %>%
+  mutate(responded = (outcome %in% c("correct", "wrong")))
+
+summary(aov(responded ~ (type * stimulus * response), data = resp.all))
+# summary(aov(responded ~ (type * stimulus * response) + Error(participant/(stimulus*response)), data = resp.all)) # RM ANOVA
+
+
+
+
 ## Response time
 
 rtdat <- behdat %>%
@@ -208,6 +232,8 @@ if (use_tikz) {
 ## z-transformed RT
 
 zrtdat <- behdat %>%
+  select(-rt.mean, -rt.sd) %>%
+  filter(outcome == "correct") %>%
   group_by(participant, type) %>%
   mutate(overall.rt = mean(rt)) %>%
   group_by(participant, type, stimulus, expected_response, overall.rt) %>%
@@ -240,6 +266,25 @@ print(plot)
 if (use_tikz) {
   dev.off()
 }
+
+
+# ANOVA
+# Three-way repeated measures ANOVA.
+# Factors: group (depressed/control), emotion (happy, neutral, sad), response (same, different).
+
+zrt.all <- behdat %>%
+  select(-rt.mean, -rt.sd) %>%
+  filter(outcome == "correct") %>%
+  group_by(participant, type) %>%
+  mutate(overall.rt = mean(rt)) %>%
+  group_by(participant, type, stimulus, expected_response, overall.rt) %>%
+  mutate(condition.rt = mean(rt), condition.rt.sd = sd(rt)) %>%
+  mutate(z.rt = (condition.rt - overall.rt) / condition.rt.sd)
+
+summary(aov(z.rt ~ (type * stimulus * response), data = zrt.all))
+# summary(aov(z.rt ~ (type * stimulus * response) + Error(participant/(stimulus*response)), data = zrt.all)) # RM ANOVA
+
+
 
 
 
