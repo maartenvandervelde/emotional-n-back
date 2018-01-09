@@ -2,7 +2,6 @@
 
 This repository contains the code for the models and analyses in my master's thesis: **A Computational Cognitive Model of Rumination**.
 
----
 
 ## Table of contents
 - [Getting started](#getting-started)
@@ -17,7 +16,6 @@ This repository contains the code for the models and analyses in my master's the
 - [Analysis](#analysis)
 - [Read more](#read-more)
 
----
 
 ## Getting started
 
@@ -26,7 +24,7 @@ The models require a customised version of Niels Taatgen's PRIMs cognitive archi
 This application only works with macOS.
 Download the file [`PRIMs.app.zip`](PRIMs.app.zip), extract it, and run the application.
 
-##### Useful links
+#### Useful links
 - [PRIMs tutorial](https://github.com/ntaatgen/PRIMs-Tutorial)
 - [Source code for the original PRIMs](https://github.com/ntaatgen/ACTransfer)
 - [Source code for my modified version of PRIMs](https://github.com/maartenvandervelde/ACTransfer/tree/Maarten/)
