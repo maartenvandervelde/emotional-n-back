@@ -169,9 +169,9 @@ def main():
 				elif "Firing" in line:
 					operator_exec_time = operator_exec_time + 0.050
 									
-				# Compiling or reinforcing (part of) an operator (always takes 300 ms, but happens at same time as firing)
+				# Compiling or reinforcing (part of) an operator (takes no time with current model settings)
 				elif "Compiling" in line or "Reinforcing" in line:
-					operator_exec_time = operator_exec_time + 0.250
+					operator_exec_time = operator_exec_time + 0
 				
 				# Current operator has failed
 				elif "failed" in line:
