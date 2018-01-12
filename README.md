@@ -12,7 +12,7 @@ This repository contains the code for the models and analyses in my master's the
     - [Doing multiple model runs at once](#doing-multiple-model-runs-at-once)
     - [Saving and loading model states](#saving-and-loading-model-states)
 - [Data](#data)
-    - [Converting `.fulltrace` to `.csv`](#converting-.fulltrace-to-.csv)
+    - [Converting `.fulltrace` to `.csv`](#converting-fulltrace-to-csv)
 - [Analysis](#analysis)
 - [Read more](#read-more)
 
