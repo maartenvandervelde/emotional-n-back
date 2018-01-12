@@ -1,6 +1,6 @@
 
 
-define task emotional-two-back-new-test {
+define task emotional-two-back-test {
 
 	// Goals
 	initial-goals: (update-rehearsal-loop wander)
@@ -16,6 +16,9 @@ define task emotional-two-back-new-test {
 	// Timing-related settings
 	production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
 	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)
+
+	// Learning parameters
+	alpha: 1.0 // learning rate for production utility (default: 0.1)
 
 }
 

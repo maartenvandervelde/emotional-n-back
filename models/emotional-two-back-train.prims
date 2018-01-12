@@ -1,6 +1,6 @@
 
 
-define task emotional-two-back-new {
+define task emotional-two-back-train {
 
 	// Goals
 	initial-goals: (update-rehearsal-loop wander)
@@ -16,6 +16,10 @@ define task emotional-two-back-new {
 	// Timing-related settings
 	production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
 	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)
+	
+	// Learning parameters
+	alpha: 1.0 // learning rate for production utility (default: 0.1)
+	
 }
 
 
@@ -257,9 +261,9 @@ define goal prepare {
 
 define goal wander {
 	
-	//----------------//
-	// Mind-wandering //
-	//----------------//
+	//-------------------------------//
+	// Lingering on items leaving WM //
+	//-------------------------------//
 	
 	operator linger-on-sad-old-two-back(activation=2.5) {
 		WM1 = face-observation
@@ -279,6 +283,87 @@ define goal wander {
 //		linger -> AC1
 //		WM3 -> AC2
 //	}
+
+
+	//----------------//
+	// Mind-wandering //
+	//----------------//
+
+	operator ignore-face-wander-instead(activation=1.5) {
+		"Start mind-wandering when a face stimulus appears"
+		V1 = face
+		V3 = nil
+		==>
+		memory -> RT1
+		self -> RT2
+		
+		nil -> G3
+	}
+	
+	operator ignore-expression-wander-instead(activation=1.5) {
+		"Start mind-wandering when a facial expression has been retrieved"
+		RT1 = face-expression
+		==>
+		memory -> RT1
+		self -> RT2
+		
+		nil -> G3
+	}
+	
+	operator ignore-observation-wander-instead(activation=1.5) {
+		"Start mind-wandering when an n-back item has been retrieved"
+		RT1 = face-observation
+		==>
+		memory -> RT1
+		self -> RT2
+		
+		nil -> G3
+	}
+	
+	
+	operator done-retrieve-random-memory(activation=1.5) {
+		"When a response has already been made, retrieve a random memory"
+		V3 = done
+		==>
+		memory -> RT1
+		self -> RT2
+	}
+	
+
+	operator process-memory-retrieve-next(activation=1.5) {
+		"When a random memory has been retrieved, place it in WM and make a new retrieval request"
+		RT1 = memory
+		==>
+		RT4 -> WM1
+		
+		memory -> RT1
+		self -> RT2
+	}
+	
+	operator process-memory-auto-respond-same(activation=1.5) {
+		"When a random memory has been retrieved, place it in WM and make an automatic 'same' response"
+		RT1 = memory
+		V1 = face
+		V3 = nil // Ensure that no response has been made yet
+		==>
+		RT4 -> WM1
+		
+ 		press-key -> AC1
+ 		same -> AC2
+	}
+	
+	operator process-memory-auto-respond-diff(activation=1.5) {
+		"When a random memory has been retrieved, place it in WM and make an automatic 'diff' response"
+		RT1 = memory
+		V1 = face
+		V3 = nil // Ensure that no response has been made yet
+		==>
+		RT4 -> WM1
+		
+ 		press-key -> AC1
+ 		diff -> AC2
+	}
+
 	
 }
 
@@ -481,32 +566,43 @@ define script {
 	}
 	
 	
-	// Create off-task memories
+//	// Create off-task memories
+//	// Slots:
+//	// title (e.g. memoryhappy1): for convenience.
+//	// memory: indicates chunk type; used as first retrieval cue.
+//	// self: used as an additional retrieval cue (without it we get weird retrievals of random singletons due to partial matching).
+//	// name (e.g. ha1): distinguishes one happy memory from another (i.e. the specific content).
+//	// mood (e.g. happy): describes mood of the memory. This part of the memory is placed in WM to spread activation.
+//	
+//	// Strength of association between mood chunks and corresponding memory chunks
+//	sji_mood_to_memory = 1
+//	
+//	for i in 0 to 10 {
+//		memoryhappy = "memoryhappy" + i
+//		name = "ha" + i
+//		add-dm(memoryhappy, "memory", "self", name, "happy")
+//		set-sji("happy", memoryhappy, sji_mood_to_memory)
+//		
+//		memoryneutral = "memoryneutral" + i
+//		name = "ne" + i
+//		add-dm(memoryneutral, "memory", "self", name, "neutral")
+//		set-sji("neutral", memoryneutral, sji_mood_to_memory)
+//		
+//		memorysad = "memorysad" + i
+//		name = "sa" + i
+//		add-dm(memorysad, "memory", "self", name, "sad")
+//		set-sji("sad", memorysad, sji_mood_to_memory)
+//	}
+
+	// Create neutral off-task memories (Added 10/01/2018)
 	// Slots:
-	// title (e.g. memoryhappy1): for convenience.
+	// title (e.g. memory1): for convenience.
 	// memory: indicates chunk type; used as first retrieval cue.
 	// self: used as an additional retrieval cue (without it we get weird retrievals of random singletons due to partial matching).
-	// name (e.g. ha1): distinguishes one happy memory from another (i.e. the specific content).
-	// mood (e.g. happy): describes mood of the memory. This part of the memory is placed in WM to spread activation.
 	
-	// Strength of association between mood chunks and corresponding memory chunks
-	sji_mood_to_memory = 1
-	
-	for i in 0 to 10 {
-		memoryhappy = "memoryhappy" + i
-		name = "ha" + i
-		add-dm(memoryhappy, "memory", "self", name, "happy")
-		set-sji("happy", memoryhappy, sji_mood_to_memory)
-		
-		memoryneutral = "memoryneutral" + i
-		name = "ne" + i
-		add-dm(memoryneutral, "memory", "self", name, "neutral")
-		set-sji("neutral", memoryneutral, sji_mood_to_memory)
-		
-		memorysad = "memorysad" + i
-		name = "sa" + i
-		add-dm(memorysad, "memory", "self", name, "sad")
-		set-sji("sad", memorysad, sji_mood_to_memory)
+	for i in 0 to 30 {
+		name = "memory" + i
+		add-dm(name, "memory", "self")
 	}
 	
 	operator-activation = 2

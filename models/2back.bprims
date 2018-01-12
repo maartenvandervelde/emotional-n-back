@@ -1,4 +1,0 @@
-repeat 1
-reset
-run emotional-two-back emotional-two-back 10
-reset

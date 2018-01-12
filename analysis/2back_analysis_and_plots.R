@@ -43,10 +43,10 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ## Read in and reformat model data
 
-#file_dir_control <- paste0(data_path, "20171204b")
-#file_dir_depressed <- paste0(data_path, "20171204d")
-file_dir_control <- paste0(data_path, "2backnew/20171219c")
-file_dir_depressed <- paste0(data_path, "2backnew/20171221b")
+# file_dir_control <- paste0(data_path, "2backnew/20171219c")
+# file_dir_depressed <- paste0(data_path, "2backnew/20171221b")
+file_dir_control <- paste0(data_path, "2backnew/20171221b")
+file_dir_depressed <- paste0(data_path, "2backnew/20180110b")
 
 
 beh_files <- c()
