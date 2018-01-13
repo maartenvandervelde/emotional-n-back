@@ -14,7 +14,8 @@ define task emotional-two-back-train {
 	default-operator-self-assoc: -3 // spreading activation from an operator to itself (discourage operators firing repeatedly) (default: -1.0)
 	
 	// Timing-related settings
-	production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
+	// production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
+	production-prim-latency: 0 // time to fire subsequent productions of an operator (default: 0.3)
 	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)
 	
 	// Learning parameters
@@ -334,7 +335,7 @@ define goal wander {
 		"When a random memory has been retrieved, place it in WM and make a new retrieval request"
 		RT1 = memory
 		==>
-		RT4 -> WM1
+		RT3 -> WM1
 		
 		memory -> RT1
 		self -> RT2
@@ -346,7 +347,7 @@ define goal wander {
 		V1 = face
 		V3 = nil // Ensure that no response has been made yet
 		==>
-		RT4 -> WM1
+		RT3 -> WM1
 		
  		press-key -> AC1
  		same -> AC2
@@ -358,7 +359,7 @@ define goal wander {
 		V1 = face
 		V3 = nil // Ensure that no response has been made yet
 		==>
-		RT4 -> WM1
+		RT3 -> WM1
 		
  		press-key -> AC1
  		diff -> AC2
@@ -599,10 +600,11 @@ define script {
 	// title (e.g. memory1): for convenience.
 	// memory: indicates chunk type; used as first retrieval cue.
 	// self: used as an additional retrieval cue (without it we get weird retrievals of random singletons due to partial matching).
+	// name (e.g. memory1): distinguishes one memory from another (the chunk title alone is not sufficient).
 	
 	for i in 0 to 30 {
-		name = "memory" + i
-		add-dm(name, "memory", "self")
+		title = "memory" + i
+		add-dm(title, "memory", "self", title)
 	}
 	
 	operator-activation = 2
