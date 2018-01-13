@@ -14,7 +14,8 @@ define task emotional-two-back-test {
 	default-operator-self-assoc: -3 // spreading activation from an operator to itself (discourage operators firing repeatedly) (default: -1)
 	
 	// Timing-related settings
-	production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
+	// production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
+	production-prim-latency: 0.0 // time to fire subsequent productions of an operator (default: 0.3)
 	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)
 
 	// Learning parameters
