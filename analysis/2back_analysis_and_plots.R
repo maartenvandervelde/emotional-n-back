@@ -19,7 +19,7 @@ library(qgraph)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = FALSE # set to TRUE to save .tex versions of the plots
+use_tikz = TRUE # set to TRUE to save .tex versions of the plots
 
 data_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/data/"
 fig_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/fig/"
@@ -46,8 +46,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 # file_dir_control <- paste0(data_path, "2backnew/20171219c")
 # file_dir_depressed <- paste0(data_path, "2backnew/20171221b")
-file_dir_control <- paste0(data_path, "2backnew/20171221b")
-file_dir_depressed <- paste0(data_path, "2backnew/20180110b")
+file_dir_control <- paste0(data_path, "2backnew/20180113c")
+file_dir_depressed <- paste0(data_path, "2backnew/20180114b")
 
 
 beh_files <- c()
@@ -197,6 +197,18 @@ summary(aov(accuracy ~ (type * valence), data = accdat.noset))
 
 
 
+# Correlation
+acc.empirical <- acc.by.condition.all %>%
+  filter(type %in% c("control", "depressed")) %>%
+  arrange(type,condition,valence)
+
+acc.model <- acc.by.condition.all %>%
+  filter(type %in% c("control model", "depressed model")) %>%
+  arrange(type,condition,valence)
+
+cor(acc.empirical$acc.mean, acc.model$acc.mean)
+
+
 
 ## Response rate
 
@@ -269,6 +281,17 @@ summary(aov(responded ~ (type * valence), data = respdat.pers))
 summary(aov(responded ~ (type * valence), data = respdat.noset))
 
 
+# Correlation
+rr.empirical <- respdatall %>%
+  filter(type %in% c("control", "depressed")) %>%
+  arrange(type,condition,valence)
+
+rr.model <- respdatall %>%
+  filter(type %in% c("control model", "depressed model")) %>%
+  arrange(type,condition,valence)
+
+cor(rr.empirical$rr.mean, rr.model$rr.mean)
+
 
 
 ## Response time
@@ -307,6 +330,17 @@ if (use_tikz) {
 
 
 
+# Correlation
+rt.empirical <- rtdat.all %>%
+  filter(type %in% c("control", "depressed")) %>%
+  arrange(type,condition,valence)
+
+rt.model <- rtdat.all %>%
+  filter(type %in% c("control model", "depressed model")) %>%
+  arrange(type,condition,valence)
+
+cor(rt.empirical$rt.mean, rt.model$rt.mean)
+plot(rt.empirical$rt.mean, rt.model$rt.mean)
 
 
 
@@ -352,7 +386,7 @@ if (use_tikz) {
 ## Plot just the conditions with differences between groups
 zrtdat.all.selection <- zrtdat.all %>%
   #filter(condition == "break" & valence == "happy" | condition == "break" & valence == "sad" | condition == "noset" & valence == "sad")
-  filter(condition %in% c("break")) %>%
+  filter(condition %in% c("break", "noset")) %>%
   mutate(valence = factor(valence, levels = c("sad", "neutral", "happy")))
 
 if (use_tikz) {
@@ -360,7 +394,7 @@ if (use_tikz) {
 }
 
 plot <- ggplot(zrtdat.all.selection, aes(x = valence, y = z.rt.mean, group = type, fill= type)) +
-  #facet_grid(~condition, scales = "free", space = "free_x", labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
+  facet_grid(~condition, scales = "free", space = "free_x", labeller = labeller(condition = c("break" = "break-set", match = "match-set", noset = "no-set", pers = "perseverance-set"))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=z.rt.mean-z.rt.sd, ymax=z.rt.mean+z.rt.sd), width=0.2, position = position_dodge(width = 0.9)) +
@@ -410,6 +444,17 @@ summary(aov(z.rt ~ (type * valence), data = zrt.pers))
 summary(aov(z.rt ~ (type * valence), data = zrt.noset))
 
 
+# Correlation
+zrt.empirical <- zrtdat.all %>%
+  filter(type %in% c("control", "depressed")) %>%
+  arrange(type,condition,valence)
+
+zrt.model <- zrtdat.all %>%
+  filter(type %in% c("control model", "depressed model")) %>%
+  arrange(type,condition,valence)
+
+cor(zrt.empirical$z.rt.mean, zrt.model$z.rt.mean, use = "complete.obs", method = "pearson")
+plot(zrt.empirical$z.rt.mean, zrt.model$z.rt.mean)
 
 
 ########################
@@ -933,7 +978,7 @@ attention_span_length
 
 ## response rate
 
-respdat.summarised <- respdat.all %>%
+respdat.summarised <- respdatall %>%
   group_by(type) %>%
   summarise(rr = mean(rr.mean), rr.sd = sd(rr.mean)) %>%
   mutate(group = c("control", "control", "depressed", "depressed"))
