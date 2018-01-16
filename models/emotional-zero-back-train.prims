@@ -252,7 +252,7 @@ define script {
 		
 		// set activation of face depending on its mood
 		face_activation_happy = 1
-		face_activation_neutral = 0.5
+		face_activation_neutral = 0.4
 		face_activation_sad = 0.5
 		
 		if (expression == "happy") {
