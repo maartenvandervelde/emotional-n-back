@@ -1,0 +1,273 @@
+//---------------------------
+// Model of an emotional 0-back task
+//
+// This model requires a custom version of the PRIMs cognitive architecture to run: https://github.com/maartenvandervelde/ACTransfer/tree/Maarten
+//
+// Copyright Maarten van der Velde
+//
+//---------------------------
+
+
+
+define task emotional-zero-back-test {
+		
+	// Goals
+	initial-goals: (do-zero-back wander)
+	goals: ()
+	
+	// Activation-related settings
+	default-activation: 0 // lower bound on baselevel activation (default: none)
+	ans: 0.05 // activation noise (default: 0.2)
+	rt: -5 // retrieval threshold (default: -2)
+	lf: 0.4 // latency factor (default: 0.2) -- a multiplier for the retrieval time. Higher == slower retrievals.
+	le: 0.1 // latency exponent -- taken from ACT-R, but here it applies just to retrieval failures (default: 1.0)
+	default-inter-operator-assoc: 2.0 // sji between operators belonging to the same goal (default: 1.0). Higher == "stickier" goals.
+	default-operator-self-assoc: -3 // spreading activation from an operator to itself (discourage operators firing repeatedly) (default: -1)
+
+	// Partial matching
+	pm: t
+
+}
+
+define action press-key {
+  latency: 0.5
+  noise: 0.1
+  distribution: uniform
+  output: Pressing
+}
+
+define action subvocalise {
+	latency: 0.3
+	noise: 0.1
+	distribution: uniform
+	output: Subvocalising
+}
+
+define action focus {
+  latency: 0.15
+  noise: 0.05
+  distribution: uniform
+  output: Focussing
+}
+
+
+define script {	
+	
+	// The 0-back task consists of 3 blocks of 43 trials each (plus 8 practice trials).
+	// At the start of each block the target expression is presented, together with an example image of that expression.
+	// In each subsequent trial an image is shown. The participant has to indicate whether the image matches the target.
+	// Images are presented for 2 seconds. There is an inter-trial interval of 2.5 seconds.
+	
+	/////////////
+	/// SETUP ///
+	/////////////
+	
+	verbose = 1 // Set to 1 to get more verbose output	
+	
+	// Create 46 stimuli of each expression
+	happy-faces = []
+	neutral-faces = []
+	sad-faces = []
+	
+	for i in 0 to 45 {
+		happy-faces[i] = "happy" + i
+		neutral-faces[i] = "neutral" + i
+		sad-faces[i] = "sad" + i	
+	}
+	
+	// Combine all stimuli in a single list
+	all-faces = []
+	for i in 0 to 45 {
+		all-faces[i] = ["happy", happy-faces[i]]		
+		all-faces[i + 46] = ["neutral", neutral-faces[i]]
+		all-faces[i + 92] = ["sad", sad-faces[i]]	
+	}
+		
+	all-faces = shuffle(all-faces)
+		
+	
+	// Create 3 blocks of trials, one for each target expression
+	blocks = []
+	
+	happy-target-block = []
+	neutral-target-block = []
+	sad-target-block = []
+	
+	// Put 43 trials in each of the three blocks
+	// Trials are drawn randomly from the complete list
+	for i in 0 to 42 {		
+		happy-target-block[i] = ["happy", all-faces[i]]
+		neutral-target-block[i] = ["neutral", all-faces[i + 43]]
+		sad-target-block[i] = ["sad", all-faces[i + 86]]
+	}
+	
+	
+	// Randomly determine the order in which the three blocks are presented
+	blocks[0] = happy-target-block
+	blocks[1] = neutral-target-block
+	blocks[2] = sad-target-block
+	
+	blocks = shuffle(blocks)
+	
+	if (verbose) {
+		print("Setting up 0-back task...")
+		print("Randomly created 3 blocks of trials:")
+		blocknum = 1
+		for block in blocks {
+			print()
+			print("BLOCK ", blocknum)
+			blocknum = blocknum + 1
+			print("______________________________________")
+			print("TARGET      EXPRESSION        FACE")
+			print("______________________________________")
+			trialnum = 0
+			expressions = [0, 0, 0]
+			expr = ""
+			for trial in block {
+				target = trial[0]
+				expression_face = trial[1]
+				expression = expression_face[0]
+				face = expression_face[1]
+				if (expression == "happy") {
+					expressions[0] = expressions[0] + 1
+					expr = "hap"
+				}
+				if (expression == "neutral") {
+					expressions[1] = expressions[1] + 1
+					expr = "neu"
+				}
+				if (expression == "sad") {
+					expressions[2] = expressions[2] + 1
+					expr = "sad"
+				}
+				print(target, "            ", expr, "                   ", face)
+				
+				trialnum = trialnum + 1
+			}
+			print("______________________________________")
+			print("(", trialnum, "trials. Happy:", expressions[0], " Neutral:", expressions[1], " Sad:", expressions[2], ")")
+			print("______________________________________")
+		}
+	}
+	
+		
+	//////////////////////
+	/// RUN EXPERIMENT ///
+	//////////////////////
+	
+	if (verbose) {
+		print()
+		print("Running experiment...")
+	}
+
+	// The experiment consists of 3 blocks
+	blocknum = 0
+	for block in blocks {
+		
+		blocknum = blocknum + 1
+		
+		// Each block starts with the presentation of the target expression (which we extract from the first trial)
+		first-trial = block[0]
+		block-target = first-trial[0]
+				
+		if (verbose) {
+			print("______________________________________")
+			print("Starting block", blocknum, ". Target expression: ", block-target)
+			print("______________________________________")
+		}
+		
+		screen("target", block-target)
+		
+		// Show the target until the model presses start
+		run-until-action("press-key")
+		
+		// Each block contains 43 trials
+		trialnum = 0
+		for trial in block {
+			trialnum = trialnum + 1
+			face = trial[1]
+			expression = face[0]
+			image = face[1]
+			response = "none"
+			correct = 0
+			
+			trial-matches-target = 0
+			if (block-target == expression) {
+				trial-matches-target = 1
+			}
+						
+			starttime = time()
+			
+			if (verbose) {
+				print("______________________________________")
+				print("Trial", trialnum, "target:", block-target, "current:", expression, time())
+				print("______________________________________")
+			}
+				
+			// show face stimulus					
+			screen("face", image)
+			
+			// The face stimulus is on screen for 2.0 seconds
+			run-until-relative-time-or-action(2.0, "press-key")
+			rt = time() - starttime
+			timeleft = 2.0 - rt
+			if (verbose) {
+				print("----- TIME LEFT: ", timeleft)
+			}
+			
+			// Retrieve the model's latest action (which contains its response or lack thereof)
+			action = last-action()
+			if (length(action) > 1) {
+				response = action[1]				
+			}
+			if (verbose) {
+				print("Action:", response)
+			}
+			
+			
+			// If the model was done running before the 2 seconds were up, it responded on time
+			if (timeleft > 0) {
+				
+				// Assess the correctness of the response
+				if (response == "same") {
+					if (trial-matches-target) {
+						// correctly said "same"
+						correct = 1
+					}
+				} else {
+					if (!trial-matches-target) {
+						// correctly said "diff"
+						correct = 1
+					}
+				}
+				
+				
+				// Show "done" on the screen so that the model does not respond again
+				screen("face", image, "done")
+				
+				// Run the model for the remainder of the two seconds
+				run-relative-time(timeleft)
+			
+			} else {
+				// The model did not respond within 2 seconds
+				if (verbose) {
+					print("No response within 2s time limit.")
+				}
+			}
+			
+			if(verbose) {
+				if (correct) {
+					print("Correct!")
+				} else {
+					print("Wrong!")
+				}
+			}
+			
+			// There is a 0.5 second interval between trials, in which the screen is empty (here fixation)
+			screen("fixation")
+
+			run-relative-time(0.5)
+						
+		}
+	}	
+}
