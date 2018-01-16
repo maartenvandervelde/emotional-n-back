@@ -1,0 +1,4 @@
+repeat 10
+	load-image emotional-zero-back-9-runs
+	run emotional-zero-back-test emotional-zero-back-test 1
+	reset

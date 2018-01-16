@@ -10,17 +10,14 @@ define task emotional-two-back-train {
 	default-activation: 2.0 // lower bound on baselevel activation (default: none)
 	ans: 0 // activation noise (default: 0.2)
 	rt: -5 // retrieval threshold (default: -2)
+	lf: 0.1 // latency factor (default: 0.2)
 	le: 0.1 // latency exponent -- taken from ACT-R, but here it applies just to retrieval failures (default: 1.0)
 	default-operator-self-assoc: -3 // spreading activation from an operator to itself (discourage operators firing repeatedly) (default: -1.0)
 	
 	// Timing-related settings
 	// production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
-	production-prim-latency: 0 // time to fire subsequent productions of an operator (default: 0.3)
-	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)
-	
-	// Learning parameters
-	alpha: 1.0 // learning rate for production utility (default: 0.1)
-	
+	production-prim-latency: 0.0 // time to fire subsequent productions of an operator (default: 0.3)
+	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)	
 }
 
 
@@ -445,9 +442,9 @@ define script {
 	
 	
 		// Set activation of face chunks depending on their expression (so some faces are recognised faster than others)
-		face_activation_happy = 2
-		face_activation_neutral = 1
-		face_activation_sad = 4
+		face_activation_happy = 1.3
+		face_activation_neutral = 0.3
+		face_activation_sad = 3.3
 	    
 		if (expression == "happy") {
 			set-activation(chunk-name, face_activation_happy)
