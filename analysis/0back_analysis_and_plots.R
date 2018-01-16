@@ -15,10 +15,10 @@ library(forcats)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = TRUE # set to TRUE to save .tex versions of the plots
+use_tikz = FALSE # set to TRUE to save .tex versions of the plots
 
-data_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/data/0back/"
-fig_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/fig/"
+data_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/data/0back/"
+fig_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/fig/"
 
 
 #Create a custom colour scale
@@ -45,8 +45,8 @@ lgdat$response <- factor(lgdat$response, levels = rev(levels(lgdat$response)))
 ### Read in data for control and depressed models
 
 # file_dir <- paste0(data_path, "20171011") # location of two sets of model output files
-file_dir_1 <- paste0(data_path, "020180114f")
-file_dir_2 <- paste0(data_path, "020180114h")
+file_dir_1 <- paste0(data_path, "020180116q")
+file_dir_2 <- paste0(data_path, "020180116s")
 
 
 # beh_files <- tail(list.files(path = file_dir, pattern="beh.csv", full.names = TRUE),2)
@@ -199,6 +199,7 @@ summary(aov(responded ~ (type * stimulus * response), data = resp.all))
 ## Response time
 
 rtdat <- behdat %>%
+  filter(outcome == "correct") %>%
   group_by(participant, type, stimulus, expected_response) %>%
   summarise(rt = mean(rt)) %>%
   group_by(type, stimulus, expected_response) %>%

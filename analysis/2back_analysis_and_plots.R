@@ -28,6 +28,7 @@ fig_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/fig/"
 #Create a custom colour scale
 group_colours <- c("blue", "darkgreen", "red", "orange")
 group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
+# group_colours <- c("#E69F00")
 names(group_colours) <- c("control", "control model", "depressed", "depressed model")
 fillScale <- scale_fill_manual(name = "type",values = group_colours)
 
@@ -161,6 +162,7 @@ plot <- ggplot(acc.by.condition.all, aes(x = valence, y = acc.mean, group = type
   scale_y_continuous() +
   geom_errorbar(aes(ymin=acc.mean-acc.sd, ymax=acc.mean+acc.sd), width=0.2, position = position_dodge(width = 0.9)) +
   labs(x = "Condition", y = "Mean accuracy") +
+  theme_classic() +
   fillScale
 
 print(plot)
@@ -243,6 +245,20 @@ plot <- ggplot(respdatall, aes(x = valence, y = rr.mean, group = type, fill = ty
   scale_y_continuous() +
   geom_errorbar(aes(ymin=rr.mean-rr.sd, ymax=rr.mean+rr.sd), width=0.2, position = position_dodge(width = 0.9)) +
   labs(x = "Condition", y = "Response rate") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(size = rel(0.9)),
+    axis.text.y = element_text(size = rel(0.9)),
+    axis.title = element_text(size = rel(0.9)),
+    legend.title = element_blank(),
+    legend.text = element_text(size = rel(0.9)),
+    legend.key.size = unit(0.4, "cm"),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.justification = "center",
+    legend.spacing = unit(0.1, "cm"),
+    legend.background = element_rect(colour = "black", size = 0.5)
+  ) +
   fillScale
 
 print(plot)
