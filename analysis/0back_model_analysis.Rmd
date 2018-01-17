@@ -23,7 +23,7 @@ library(forcats)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = TRUE # set to TRUE to save .tex versions of the plots
+use_tikz = FALSE # set to TRUE to save .tex versions of the plots
 
 data_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/data/0back/"
 fig_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/fig/"
@@ -135,6 +135,26 @@ if (use_tikz) {
 summary(aov(accuracy ~ (type * stimulus * response), data = behdat_filtered))
 ```
 
+### Correlation with data
+```{r}
+
+acc_model <- accdat_model %>%
+  arrange(type, stimulus, expected_response) %>%
+  pull(acc_mean)
+
+acc_data <- accdat_lg %>%
+  arrange(type, stimulus, expected_response) %>%
+  pull(acc_mean)
+
+cor(acc_model, acc_data)
+
+cosine.similarity <- function(a, b) {
+  a %*% b / (sqrt(a%*%a) * sqrt(b%*%b))
+}
+
+cosine.similarity(acc_model, acc_data)
+```
+
 
 ## Response rate
 ```{r}
@@ -181,6 +201,22 @@ if (use_tikz) {
 ### ANOVA
 ```{r}
 summary(aov(responded ~ (type * stimulus * response), data = behdat))
+```
+
+### Correlation with data
+```{r}
+rr_model <- respdat_model %>%
+  arrange(type, expression, expected_response) %>%
+  pull(rr_mean)
+
+rr_data <- respdat_lg %>%
+  arrange(type, expression, expected_response) %>%
+  pull(rr_mean)
+
+cor(rr_model, rr_data)
+
+cosine.similarity(rr_model, rr_data)
+
 ```
 
 
@@ -271,6 +307,22 @@ if (use_tikz) {
 ```{r}
 summary(aov(z_rt ~ (type * stimulus * response), data = behdat_filtered_z_rt))
 ```
+
+### Correlation with data
+```{r}
+zrt_model <- z_rtdat_model %>%
+  arrange(type, expression, expected_response) %>%
+  pull(z_rt_mean)
+
+zrt_data <- z_rtdat_lg %>%
+  arrange(type, expression, expected_response) %>%
+  pull(z_rt_mean)
+
+cor(zrt_model, zrt_data)
+
+cosine.similarity(zrt_model, zrt_data)
+```
+
 
 
 ## Operator analysis
