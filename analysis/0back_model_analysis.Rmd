@@ -1,0 +1,357 @@
+---
+title: "Emotional 0-back model analysis"
+author: "Maarten van der Velde"
+date: "January 2018"
+output: 
+  html_document:
+    toc: TRUE
+    highlight: tango
+    smart: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(scales)
+library(forcats)
+library(tikzDevice)
+options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
+
+use_tikz = TRUE # set to TRUE to save .tex versions of the plots
+
+data_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/data/0back/"
+fig_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/fig/"
+
+
+# Plot groups
+data_names = c("control", "depressed")
+model_names = c("control model", "depressed model")
+plot_groups = c(rbind(data_names, model_names))
+
+# Plot theming
+plot_theme <- theme_bw()
+
+# Custom colour scale for plots
+group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
+names(group_colours) <- plot_groups
+fill_scale <- scale_fill_manual(name = "", values = group_colours)
+
+```
+
+
+
+## Reading in the data
+
+### Empirical data from Levens & Gotlib (2010)
+```{r}
+lgdat <- read.csv(paste0(data_path, "lgdat_0back.csv"))
+
+lgdat$type <- factor(lgdat$type, levels=rev(levels(lgdat$type)))
+lgdat$response <- factor(lgdat$response, levels = rev(levels(lgdat$response)))
+```
+
+### Model data
+```{r}
+control_dir <- paste0(data_path, "020180117f")
+depressed_dir <- paste0(data_path, "020180117g")
+
+beh_files <- c()
+beh_files[1] <- tail(list.files(path = control_dir, pattern="beh.csv", full.names = TRUE),1)
+beh_files[2] <- tail(list.files(path = depressed_dir, pattern="beh.csv", full.names = TRUE),1)
+
+behdat_full <- data.frame()
+for (i in 1:length(beh_files)) {
+  behdat_full <- rbind(behdat_full, read.csv(beh_files[i], header=TRUE,sep=","))
+}
+
+behdat <- behdat_full %>%
+  mutate(type = ifelse(model == levels(model)[1], model_names[1], model_names[2])) %>%
+  select(-model, -task_rep) %>%
+  mutate(expected_response = as.factor(ifelse(stimulus == target, "same", "diff")),
+         accuracy = (outcome == "correct"),
+         responded = (outcome %in% c("correct", "wrong")))
+
+
+behdat_filtered <- behdat %>%
+  filter(response != "none") %>% # Filter out non-responses
+  filter(rt <= 2.0) %>% # Responses after 2s are too late
+  filter(rt > 0) %>% # Response times of 0s indicate missed trials
+  
+  # Filter out trials with extreme RTs (outside 2.5 SDs of each participant's mean RT)
+  group_by(type, participant) %>%
+  mutate(rt_mean = mean(rt), rt_sd = sd(rt)) %>%
+  filter(rt >= rt_mean - 2.5 * rt_sd, rt <= rt_mean + 2.5 * rt_sd)
+  
+```
+
+
+## Accuracy
+
+```{r}
+accdat_model <- behdat_filtered %>%
+  group_by(participant, type, stimulus, expected_response) %>%
+  summarise(acc = mean(accuracy)) %>%
+  group_by(type, stimulus, expected_response) %>%
+  summarise(acc_mean = mean(acc), acc_sd = sd(acc))
+  
+
+accdat_lg <- lgdat %>%
+  rename(stimulus = expression, expected_response = response) %>%
+  mutate(acc_sd = NA, type = type) %>%
+  select(stimulus, expected_response, acc_mean, acc_sd, type)
+
+
+accdat_all <- rbind(accdat_lg, data.frame(accdat_model)) %>%
+  mutate(type = fct_relevel(type, plot_groups))
+
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "0backAccuracyByResponse.tex"), width = 6, height = 3)
+}
+
+p <- ggplot(accdat_all, aes(x = expected_response, y = acc_mean, group = type, fill = type)) +
+  facet_grid(~stimulus, labeller = labeller(stimulus = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=acc_mean-acc_sd, ymax=acc_mean+acc_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Expected response", y = "Mean accuracy") +
+  fill_scale + 
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+```
+
+### ANOVA
+```{r}
+summary(aov(accuracy ~ (type * stimulus * response), data = behdat_filtered))
+```
+
+
+## Response rate
+```{r}
+respdat_model <- behdat %>%
+  group_by(participant, type, target, expected_response, responded) %>%
+  tally() %>%
+  complete(responded, fill = list(n = 0)) %>%
+  group_by(participant, type, target, expected_response) %>%
+  mutate(freq = n/sum(n)) %>% # Represent as fraction
+  filter(responded == TRUE) %>%
+  select(-responded, -n) %>%
+  group_by(type, target, expected_response) %>%
+  summarise(rr_mean = mean(freq), rr_sd = sd(freq)) %>%
+  rename(expression = target)
+
+
+respdat_lg <- lgdat %>%
+  mutate(rr_sd = NA) %>%
+  rename(expected_response = response) %>%
+  select(expression, expected_response, rr_mean, rr_sd, type)
+
+
+respdat_all <- rbind(respdat_lg, data.frame(respdat_model)) %>%
+  mutate(type = fct_relevel(type, plot_groups))
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "0backResponseRate.tex"), width = 6, height = 3)
+}
+p <- ggplot(respdat_all, aes(x = expected_response, y = rr_mean, group = type, fill = type)) +
+  facet_grid(~expression, labeller = labeller(expression = c(happy = "target: happy", neutral = "target: neutral", sad = "target: sad"))) +
+  geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=rr_mean-rr_sd, ymax=rr_mean+rr_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Expected response", y = "Response rate") +
+  fill_scale + 
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+```
+
+### ANOVA
+```{r}
+summary(aov(responded ~ (type * stimulus * response), data = behdat))
+```
+
+
+## Response time
+```{r}
+rtdat_model <- behdat_filtered %>%
+  filter(outcome == "correct") %>%
+  group_by(participant, type, stimulus, expected_response) %>%
+  summarise(rt = mean(rt)) %>%
+  group_by(type, stimulus, expected_response) %>%
+  summarise(rt_mean = mean(rt), rt_sd = sd(rt)) %>%
+  rename(expression = stimulus)
+
+rtdat_lg <- lgdat %>%
+  rename(expected_response = response) %>%
+  select(expression, expected_response, rt_mean, rt_sd, type)
+
+rtdat_all <- rbind(rtdat_lg, data.frame(rtdat_model)) %>%
+  mutate(type = fct_relevel(type, plot_groups))
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "0backResponseTime.tex"), width = 6, height = 3)
+}
+
+p <- ggplot(rtdat_all, aes(x = expected_response, y = rt_mean, group = type, fill= type)) +
+  facet_grid(~expression, labeller = labeller(expression = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=rt_mean-rt_sd, ymax=rt_mean+rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Response", y = "Mean RT (s)") +
+  fill_scale +
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+```
+
+
+## z-transformed response time
+```{r}
+behdat_filtered_z_rt <- behdat_filtered %>%
+  select(-rt_mean, -rt_sd) %>%
+  filter(outcome == "correct") %>%
+  group_by(participant, type) %>%
+  mutate(overall_rt = mean(rt)) %>%
+  group_by(participant, type, stimulus, expected_response, overall_rt) %>%
+  mutate(condition_rt = mean(rt), condition_rt_sd = sd(rt)) %>%
+  mutate(z_rt = (condition_rt - overall_rt) / condition_rt_sd)
+
+
+z_rtdat_model <- behdat_filtered_z_rt %>%
+  group_by(type, stimulus, expected_response) %>%
+  summarise(z_rt_mean = mean(z_rt), z_rt_sd = sd(z_rt)) %>%
+  rename(expression = stimulus)
+
+
+z_rtdat_lg <- lgdat %>%
+  rename(expected_response = response) %>%
+  select(expression, expected_response, z_rt_mean, z_rt_sd, type)
+
+
+z_rtdat_all <- rbind(z_rtdat_lg, data.frame(z_rtdat_model)) %>%
+  mutate(type = fct_relevel(type, plot_groups))
+
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "0backResponseTimeZ.tex"), width = 6, height = 3)
+}
+
+p <- ggplot(z_rtdat_all, aes(x = expected_response, y = z_rt_mean, group = type, fill= type)) +
+  facet_grid(~expression, labeller = labeller(expression = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=z_rt_mean-z_rt_sd, ymax=z_rt_mean+z_rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Response", y = "z-transformed mean RT") +
+  fill_scale + 
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+```
+
+### ANOVA
+```{r}
+summary(aov(z_rt ~ (type * stimulus * response), data = behdat_filtered_z_rt))
+```
+
+
+## Operator analysis
+```{r}
+op_files <- c()
+op_files[1] <- tail(list.files(path = control_dir, pattern="ops.csv", full.names = TRUE),1)
+op_files[2] <- tail(list.files(path = depressed_dir, pattern="ops.csv", full.names = TRUE),1)
+
+opdat_full <- data.frame()
+for (i in 1:length(op_files)) {
+  opdat_full <- rbind(opdat_full, read.csv(op_files[i], header=TRUE,sep=","))
+}
+
+opdat <- opdat_full %>%
+  select(-task_rep) %>%
+  mutate(type = ifelse(model == levels(model)[1], model_names[1], model_names[2])) %>%
+  mutate(on_task = as.logical(on_task), success = as.logical(success)) %>%
+  select(-model)
+```
+
+### Frequency of mind-wandering: proportion of operators
+```{r}
+mw_freq <- opdat %>%
+  group_by(type, participant, block, trial, on_task) %>%
+  count(on_task) %>%
+  ungroup() %>%
+  complete(type, participant, block, trial, on_task, fill = list(n = 0)) %>%
+  group_by(type, participant, block, trial) %>%
+  mutate(freq = n/sum(n)) %>%
+  ungroup() %>%
+  filter(on_task == FALSE) %>%
+  mutate(freq = if_else(is.na(freq), 0, freq))
+
+
+mw_share_of_ops <- mw_freq %>%
+  group_by(type) %>%
+  summarise(mw_mean = mean(freq), mw_sd = sd(freq))
+
+mw_share_of_ops
+```
+
+### Frequency of mind-wandering: proportion of trials with >50% mind-wandering
+```{r}
+mw_dominant <- mw_freq %>%
+  mutate(mw_trial = freq >= 0.5) %>%
+  group_by(type) %>%
+  count(mw_trial) %>%
+  mutate(freq = nn/sum(nn))
+
+mw_dominant
+```
+
+
+## Operator frequency
+```{r}
+op_freq <- opdat %>%
+  filter(success == TRUE) %>%
+  group_by(type, participant, operator, on_task) %>%
+  count() %>%
+  group_by(type, participant) %>%
+  mutate(freq = n/sum(n)) %>%
+  group_by(type, operator, on_task) %>%
+  summarise(freq_mean = mean(freq), freq_sd = sd(freq))
+
+
+
+
+ggplot(op_freq, aes(x = operator, y = freq_mean, group = desc(type), fill = type)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  coord_flip() +
+  facet_grid(on_task ~ ., scales = "free_y", switch = "both", as.table = FALSE, labeller = labeller(on_task = c("TRUE" = "Task operators", "FALSE" = "Mind-wandering operators"))) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=freq_mean-freq_sd, ymax=freq_mean+freq_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Operator", y = "Frequency of use") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+  fill_scale + 
+  plot_theme
+
+```
+
+
+
+
+

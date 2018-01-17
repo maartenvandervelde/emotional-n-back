@@ -1,6 +1,9 @@
 ###
 ##
-## Analysis of depressed and control 0-back models
+## Analysis of depressed and control models performing the emotional 0-back task
+##
+## Maarten van der Velde
+## 2018
 ##
 ###
 
@@ -15,14 +18,13 @@ library(forcats)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = FALSE # set to TRUE to save .tex versions of the plots
+use_tikz = TRUE # set to TRUE to save .tex versions of the plots
 
 data_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/data/0back/"
 fig_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/fig/"
 
 
-#Create a custom colour scale
-group_colours <- c("blue", "darkgreen", "red", "orange")
+#Create a custom colour scale for plots
 group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
 names(group_colours) <- c("control", "control model", "depressed", "depressed model")
 fillScale <- scale_fill_manual(name = "type",values = group_colours)
@@ -45,8 +47,8 @@ lgdat$response <- factor(lgdat$response, levels = rev(levels(lgdat$response)))
 ### Read in data for control and depressed models
 
 # file_dir <- paste0(data_path, "20171011") # location of two sets of model output files
-file_dir_1 <- paste0(data_path, "020180116q")
-file_dir_2 <- paste0(data_path, "020180116s")
+file_dir_1 <- paste0(data_path, "020180117f")
+file_dir_2 <- paste0(data_path, "020180117g")
 
 
 # beh_files <- tail(list.files(path = file_dir, pattern="beh.csv", full.names = TRUE),2)
@@ -587,6 +589,8 @@ ggplot(first_ops, aes(x = operator, y = p.mean, group = group, fill= group)) +
 ## What is the chance of selecting an on-task/off-task operator given the current operator?
 
 ## Transition probabilities
+library(stringr)
+library(qgraph)
 calc.trans.probs <- function(dat, variable) {
   
   dat <- droplevels(dat)
