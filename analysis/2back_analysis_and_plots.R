@@ -19,10 +19,10 @@ library(qgraph)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
-use_tikz = TRUE # set to TRUE to save .tex versions of the plots
+use_tikz = FALSE # set to TRUE to save .tex versions of the plots
 
-data_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/data/"
-fig_path <- "/Users/maarten/Dropbox/Masterproject/emotional-n-back/fig/"
+data_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/data/"
+fig_path <- "/Users/maarten/Dropbox(Work)/Masterproject/emotional-n-back/fig/"
 
 
 #Create a custom colour scale
@@ -48,7 +48,7 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 # file_dir_control <- paste0(data_path, "2backnew/20171219c")
 # file_dir_depressed <- paste0(data_path, "2backnew/20171221b")
 file_dir_control <- paste0(data_path, "2backnew/20180113c")
-file_dir_depressed <- paste0(data_path, "2backnew/20180114b")
+file_dir_depressed <- paste0(data_path, "2backnew/20180114")
 
 
 beh_files <- c()
@@ -561,7 +561,7 @@ opfreq <- opdatall %>%
 
 
 
-ggplot(opfreq, aes(x = operator, y = freq.mean, group = group, fill= group)) +
+ggplot(opfreq, aes(x = operator, y = freq.mean, group = desc(group), fill= group)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   coord_flip() +
   facet_grid(on_task ~ ., scales = "free", switch = "both", as.table = FALSE, labeller = labeller(on_task = c("TRUE" = "Task operators", "FALSE" = "Mind-wandering operators"))) +
