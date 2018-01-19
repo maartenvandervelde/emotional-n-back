@@ -7,7 +7,7 @@ define task emotional-two-back-train {
 	goals: (process-stimulus make-response prepare)
 
 	// Activation-related settings
-	default-activation: 2.0 // lower bound on baselevel activation (default: none)
+	default-activation: -3 // lower bound on baselevel activation (default: none)
 	ans: 0 // activation noise (default: 0.2)
 	rt: -5 // retrieval threshold (default: -2)
 	lf: 0.1 // latency factor (default: 0.2)
@@ -15,7 +15,6 @@ define task emotional-two-back-train {
 	default-operator-self-assoc: -3 // spreading activation from an operator to itself (discourage operators firing repeatedly) (default: -1.0)
 	
 	// Timing-related settings
-	// production-prim-latency: 0.05 // time to fire subsequent productions of an operator (default: 0.3)
 	production-prim-latency: 0.0 // time to fire subsequent productions of an operator (default: 0.3)
 	imaginal-delay: 0.0 // time to create imaginal chunk (default: 0.2)	
 }
@@ -263,24 +262,24 @@ define goal wander {
 	// Lingering on items leaving WM //
 	//-------------------------------//
 	
-	operator linger-on-sad-old-two-back(activation=2.5) {
-		WM1 = face-observation
-		WM2 = old
-		WM3 = sad
-		==>
-		linger -> AC1
-		WM3 -> AC2
-	}
-	
-	
-//	operator linger-on-happy-old-two-back(activation=2.5) {
+//	operator linger-on-sad-old-two-back(activation=2.5) {
 //		WM1 = face-observation
 //		WM2 = old
-//		WM3 = happy
+//		WM3 = sad
 //		==>
 //		linger -> AC1
 //		WM3 -> AC2
 //	}
+	
+	
+	operator linger-on-happy-old-two-back(activation=2.5) {
+		WM1 = face-observation
+		WM2 = old
+		WM3 = happy
+		==>
+		linger -> AC1
+		WM3 -> AC2
+	}
 
 
 	//----------------//
@@ -338,29 +337,29 @@ define goal wander {
 		self -> RT2
 	}
 	
-	operator process-memory-auto-respond-same(activation=1.5) {
-		"When a random memory has been retrieved, place it in WM and make an automatic 'same' response"
-		RT1 = memory
-		V1 = face
-		V3 = nil // Ensure that no response has been made yet
-		==>
-		RT3 -> WM1
-		
- 		press-key -> AC1
- 		same -> AC2
-	}
-	
-	operator process-memory-auto-respond-diff(activation=1.5) {
-		"When a random memory has been retrieved, place it in WM and make an automatic 'diff' response"
-		RT1 = memory
-		V1 = face
-		V3 = nil // Ensure that no response has been made yet
-		==>
-		RT3 -> WM1
-		
- 		press-key -> AC1
- 		diff -> AC2
-	}
+//	operator process-memory-auto-respond-same(activation=1.5) {
+//		"When a random memory has been retrieved, place it in WM and make an automatic 'same' response"
+//		RT1 = memory
+//		V1 = face
+//		V3 = nil // Ensure that no response has been made yet
+//		==>
+//		RT3 -> WM1
+//		
+// 		press-key -> AC1
+// 		same -> AC2
+//	}
+//	
+//	operator process-memory-auto-respond-diff(activation=1.5) {
+//		"When a random memory has been retrieved, place it in WM and make an automatic 'diff' response"
+//		RT1 = memory
+//		V1 = face
+//		V3 = nil // Ensure that no response has been made yet
+//		==>
+//		RT3 -> WM1
+//		
+// 		press-key -> AC1
+// 		diff -> AC2
+//	}
 
 	
 }
@@ -374,8 +373,8 @@ define facts {
 
 
 define action press-key {
-  latency: 0.15 
-  noise: 0.05
+  latency: 0.4 
+  noise: 0.1
   distribution: uniform
   output: Pressing
 }
@@ -442,9 +441,13 @@ define script {
 	
 	
 		// Set activation of face chunks depending on their expression (so some faces are recognised faster than others)
-		face_activation_happy = 1.3
+		face_activation_happy = 3.3
 		face_activation_neutral = 0.3
-		face_activation_sad = 3.3
+		face_activation_sad = 1.3
+		
+//		face_activation_happy = 1.3
+//		face_activation_neutral = 0.3
+//		face_activation_sad = 3.3
 	    
 		if (expression == "happy") {
 			set-activation(chunk-name, face_activation_happy)
@@ -604,7 +607,7 @@ define script {
 		add-dm(title, "memory", "self", title)
 	}
 	
-	operator-activation = 2
+	task-operator-activation = 2
 	
 	task-operators = [
 		"get-old-two-back",
@@ -625,8 +628,9 @@ define script {
 	]
 	
 	for task-op in task-operators {
-		set-activation(task-op, operator-activation)
+		set-activation(task-op, task-operator-activation)
 	}
+	
 	
 	
 	//////////////////////
