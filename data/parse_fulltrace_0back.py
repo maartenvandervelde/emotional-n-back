@@ -111,7 +111,7 @@ def main():
 				
 				# New participant run
 				if line.startswith("Run #"):
-					participant_num = int(re.search("[0-9]", line).group(0))
+					participant_num = participant_num + 1
 					
 				# Start of a new task (model) 
 				elif line.startswith("Running task"):
