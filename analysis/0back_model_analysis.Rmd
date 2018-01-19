@@ -20,6 +20,8 @@ knitr::opts_chunk$set(message = FALSE)
 library(tidyverse)
 library(scales)
 library(forcats)
+library(afex)
+library(lsmeans)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
@@ -71,11 +73,12 @@ for (i in 1:length(beh_files)) {
 }
 
 behdat <- behdat_full %>%
-  mutate(type = ifelse(model == levels(model)[1], model_names[1], model_names[2])) %>%
-  select(-model, -task_rep) %>%
+  mutate(type = as.factor(ifelse(model == levels(model)[1], model_names[1], model_names[2]))) %>%
+  mutate(id = as.factor(paste0(type, participant))) %>%
   mutate(expected_response = as.factor(ifelse(stimulus == target, "same", "diff")),
-         accuracy = outcome == "correct",
-         responded = outcome %in% c("correct", "wrong"))
+         accuracy = as.numeric(outcome == "correct"),
+         responded = as.numeric(outcome %in% c("correct", "wrong"))) %>%
+  select(-model, task_rep)
 
 
 behdat_filtered <- behdat %>%
@@ -86,7 +89,8 @@ behdat_filtered <- behdat %>%
   # Filter out trials with extreme RTs (outside 2.5 SDs of each participant's mean RT)
   group_by(type, participant) %>%
   mutate(rt_mean = mean(rt), rt_sd = sd(rt)) %>%
-  filter(rt >= rt_mean - 2.5 * rt_sd, rt <= rt_mean + 2.5 * rt_sd)
+  filter(rt >= rt_mean - 2.5 * rt_sd, rt <= rt_mean + 2.5 * rt_sd) %>%
+  droplevels()
   
 ```
 
@@ -130,9 +134,131 @@ if (use_tikz) {
 }
 ```
 
+
+```{r}
+# https://cran.r-project.org/web/packages/afex/vignettes/afex_anova_example.html
+acc_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered, between = "type", within = c("stimulus", "response"))
+acc_aov
+
+emmeans(acc_aov, ~ response) %>%
+  pairs()
+
+emmeans(acc_aov, ~ stimulus) %>%
+  pairs()
+
+emmeans(acc_aov, ~ response:stimulus) %>%
+  pairs()
+```
+
+
+
 ### ANOVA
 ```{r}
-summary(aov(accuracy ~ (type * stimulus * response), data = behdat_filtered))
+acc_anova <- ezANOVA(data = behdat_filtered, dv = accuracy, wid = id, within = .(stimulus, response), between = type, return_aov = TRUE)
+acc_anova
+
+accdat_agg <- behdat_filtered %>%
+  group_by(type, id, stimulus, response) %>%
+  summarise(accuracy = mean(accuracy))
+
+acc_same <- accdat_agg %>%
+  arrange(response,id,stimulus) %>%
+  filter(response == "same")
+
+acc_diff <- accdat_agg %>% 
+  arrange(response, id, stimulus) %>%
+  filter(response == "diff")
+
+t.test(acc_same$accuracy, acc_diff$accuracy, paired = TRUE)
+
+lsmeans(acc_anova$aov, ~response|type)
+
+pairwise.t.test.with.t.and.df <- function (x, g, p.adjust.method = p.adjust.methods, pool.sd = !paired, 
+                                           paired = FALSE, alternative = c("two.sided", "less", "greater"), 
+                                           ...) 
+{
+    if (paired & pool.sd) 
+        stop("pooling of SD is incompatible with paired tests")
+    DNAME <- paste(deparse(substitute(x)), "and", deparse(substitute(g)))
+    g <- factor(g)
+    p.adjust.method <- match.arg(p.adjust.method)
+    alternative <- match.arg(alternative)
+    if (pool.sd) {
+        METHOD <- "t tests with pooled SD"
+        xbar <- tapply(x, g, mean, na.rm = TRUE)
+        s <- tapply(x, g, sd, na.rm = TRUE)
+        n <- tapply(!is.na(x), g, sum)
+        degf <- n - 1
+        total.degf <- sum(degf)
+        pooled.sd <- sqrt(sum(s^2 * degf)/total.degf)
+        compare.levels <- function(i, j) {
+            dif <- xbar[i] - xbar[j]
+            se.dif <- pooled.sd * sqrt(1/n[i] + 1/n[j])
+            t.val <- dif/se.dif
+            if (alternative == "two.sided") 
+                2 * pt(-abs(t.val), total.degf)
+            else pt(t.val, total.degf, lower.tail = (alternative == 
+                                                         "less"))
+        }
+        compare.levels.t <- function(i, j) {
+            dif <- xbar[i] - xbar[j]
+            se.dif <- pooled.sd * sqrt(1/n[i] + 1/n[j])
+            t.val = dif/se.dif 
+            t.val
+        }       
+    }
+    else {
+        METHOD <- if (paired) 
+            "paired t tests"
+        else "t tests with non-pooled SD"
+        compare.levels <- function(i, j) {
+            xi <- x[as.integer(g) == i]
+            xj <- x[as.integer(g) == j]
+            t.test(xi, xj, paired = paired, alternative = alternative, 
+                   ...)$p.value
+        }
+        compare.levels.t <- function(i, j) {
+            xi <- x[as.integer(g) == i]
+            xj <- x[as.integer(g) == j]
+            t.test(xi, xj, paired = paired, alternative = alternative, 
+                   ...)$statistic
+        }
+        compare.levels.df <- function(i, j) {
+            xi <- x[as.integer(g) == i]
+            xj <- x[as.integer(g) == j]
+            t.test(xi, xj, paired = paired, alternative = alternative, 
+                   ...)$parameter
+        }
+    }
+    PVAL <- pairwise.table(compare.levels, levels(g), p.adjust.method)
+    TVAL <- pairwise.table.t(compare.levels.t, levels(g), p.adjust.method)
+    if (pool.sd) 
+        DF <- total.degf
+    else
+        DF <- pairwise.table.t(compare.levels.df, levels(g), p.adjust.method)           
+    ans <- list(method = METHOD, data.name = DNAME, p.value = PVAL, 
+                p.adjust.method = p.adjust.method, t.value = TVAL, dfs = DF)
+    class(ans) <- "pairwise.htest"
+    ans
+}
+pairwise.table.t <- function (compare.levels.t, level.names, p.adjust.method) 
+{
+    ix <- setNames(seq_along(level.names), level.names)
+    pp <- outer(ix[-1L], ix[-length(ix)], function(ivec, jvec) sapply(seq_along(ivec), 
+        function(k) {
+            i <- ivec[k]
+            j <- jvec[k]
+            if (i > j)
+                compare.levels.t(i, j)               
+            else NA
+        }))
+    pp[lower.tri(pp, TRUE)] <- pp[lower.tri(pp, TRUE)]
+    pp
+}
+
+result <- pairwise.t.test(accdat_agg$accuracy, accdat_agg$response, paired = TRUE, p.adjust.method = "bonf")
+result <- pairwise.t.test.with.t.and.df(accdat_agg$accuracy, accdat_agg$response, paired = TRUE, p.adjust.method = "bonf")
+
 ```
 
 ### Correlation with data
@@ -198,7 +324,10 @@ if (use_tikz) {
 
 ### ANOVA
 ```{r}
-summary(aov(responded ~ (type * stimulus * response), data = behdat))
+rr_anova <- aov(responded ~ (type * stimulus * response), data = behdat)
+summary(rr_anova)
+eta_sq(rr_anova)
+
 ```
 
 ### Correlation with data
@@ -303,7 +432,10 @@ if (use_tikz) {
 
 ### ANOVA
 ```{r}
-summary(aov(z_rt ~ (type * stimulus * response), data = behdat_filtered_z_rt))
+zrt_anova <- aov(z_rt ~ (type * stimulus * response), data = behdat_filtered_z_rt)
+summary(zrt_anova)
+eta_sq(zrt_anova)
+
 ```
 
 ### Correlation with data
