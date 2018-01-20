@@ -2,11 +2,15 @@
 title: "Emotional 2-back model analysis"
 author: "Maarten van der Velde"
 date: "January 2018"
-output: 
+output:
   html_document:
-    toc: TRUE
     highlight: tango
     smart: no
+    toc: yes
+  html_notebook:
+    highlight: tango
+    smart: no
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -17,19 +21,18 @@ knitr::opts_chunk$set(message = FALSE)
 ## Setup
 ```{r}
 library(tidyverse)
-library(httr) # Enables OSF data storage:  dat <- GET("osf.io/x6fud/?action=download", progress()) %>% content(as = "parsed")
-library(magrittr)
 library(stringr)
-library(scales)
 library(forcats)
+library(afex)
+library(lsmeans)
 library(qgraph)
 library(tikzDevice)
 options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Default is 10pt.
 
 use_tikz = FALSE # set to TRUE to save .tex versions of the plots
 
-data_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/data/2back/"
-fig_path <- "/Users/maarten/Dropbox(Work)/Masterproject/emotional-n-back/fig/"
+data_path <- "../data/2back/"
+fig_path <- "../fig/"
 
 # Plot groups
 data_names = c("control", "depressed")
@@ -55,7 +58,7 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ### Model data
 ```{r}
-control_dir <- paste0(data_path, "20180119b")
+control_dir <- paste0(data_path, "20180120f")
 depressed_dir <- paste0(data_path, "20180118e")
 
 beh_files <- c()
@@ -69,6 +72,7 @@ for (i in 1:length(beh_files)) {
 
 behdat <- behdat_full %>%
   mutate(type = ifelse(model == levels(model)[1], model_names[1], model_names[2])) %>%
+  mutate(id = as.factor(paste0(type, participant))) %>%
   select(-model, -task_rep)
 
 # Add outcome and condition of trial (see Levens and Gotlib (2010))
@@ -112,8 +116,8 @@ behdat$outcome <- as.factor(outcome)
 behdat$condition <- as.factor(condition)
 behdat$valence <- as.factor(valence)
 
-behdat$accuracy <- behdat$outcome == "correct"
-behdat$responded <- behdat$outcome %in% c("correct", "wrong") & between(behdat$rt, 0, 2.0) & behdat$response != "none"
+behdat$accuracy <- as.numeric(behdat$outcome == "correct")
+behdat$responded <- as.numeric(behdat$outcome %in% c("correct", "wrong") & between(behdat$rt, 0, 2.0) & behdat$response != "none")
 
 behdat_filtered <- behdat %>%
   filter(response != "none") %>% # Filter out non-responses
@@ -168,27 +172,38 @@ if (use_tikz) {
 ```
 
 ### ANOVA
+
 ```{r}
-acc_break <- behdat_filtered %>%
+# Break-set condition
+behdat_filtered_break <- behdat_filtered %>%
   filter(condition == "break")
 
-summary(aov(accuracy ~ (type * valence), data = acc_break))
+acc_break_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_break, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_break_aov
 
-acc_match <- behdat_filtered %>%
+# Match-set condition
+behdat_filtered_match <- behdat_filtered %>%
   filter(condition == "match")
 
-summary(aov(accuracy ~ (type * valence), data = acc_match))
+acc_match_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_match, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_match_aov
 
-acc_noset <- behdat_filtered %>%
+emmeans(acc_match_aov, ~ stimulus) %>%
+  pairs(adjust = "bonf")
+
+# No-set condition
+behdat_filtered_noset <- behdat_filtered %>%
   filter(condition == "noset")
 
-summary(aov(accuracy ~ (type * valence), data = acc_noset))
+acc_noset_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_noset_aov
 
-acc_pers <- behdat_filtered %>%
+# Perseverance-set condition
+behdat_filtered_pers <- behdat_filtered %>%
   filter(condition == "pers")
 
-summary(aov(accuracy ~ (type * valence), data = acc_pers))
-
+acc_pers_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_pers_aov
 ```
 
 ### Correlation with data
@@ -245,26 +260,35 @@ if (use_tikz) {
 ```
 
 ### ANOVA
+
 ```{r}
-rr_break <- behdat %>%
+# Break-set condition
+behdat_break <- behdat %>%
   filter(condition == "break")
 
-summary(aov(responded ~ (type * valence), data = rr_break))
+rr_break_aov <- aov_ez(id = "id", dv = "responded", data = behdat_break, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_break_aov
 
-rr_match <- behdat %>%
+# Match-set condition
+behdat_match <- behdat %>%
   filter(condition == "match")
 
-summary(aov(responded ~ (type * valence), data = rr_match))
+rr_match_aov <- aov_ez(id = "id", dv = "responded", data = behdat_match, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_match_aov
 
-rr_noset <- behdat %>%
+# No-set condition
+behdat_noset <- behdat %>%
   filter(condition == "noset")
 
-summary(aov(responded ~ (type * valence), data = rr_noset))
+rr_noset_aov <- aov_ez(id = "id", dv = "responded", data = behdat_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_noset_aov
 
-rr_pers <- behdat %>%
+# Perseverance-set condition
+behdat_pers<- behdat %>%
   filter(condition == "pers")
 
-summary(aov(responded ~ (type * valence), data = rr_pers))
+rr_pers_aov <- aov_ez(id = "id", dv = "responded", data = behdat_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_pers_aov
 
 ```
 
@@ -315,6 +339,39 @@ if (use_tikz) {
   dev.off()
 }
 ```
+### ANOVA
+```{r}
+# Break-set condition
+rt_break_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_break, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_break_aov
+
+# Match-set condition
+rt_match_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_match, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_match_aov
+
+# No-set condition
+rt_noset_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_noset_aov
+
+# Perseverance-set condition
+rt_pers_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_pers_aov
+
+```
+
+### Correlation with data
+```{r}
+rt_model <- rtdat_model %>%
+  arrange(type, condition, valence) %>%
+  pull(rt_mean)
+
+rt_data <- rtdat_lg %>%
+  arrange(type, condition, valence) %>%
+  pull(rt_mean)
+
+cor(rt_model, rt_data)
+```
+
 
 ## z-transformed response time
 ```{r}
@@ -361,27 +418,36 @@ if (use_tikz) {
 
 ### ANOVA
 ```{r}
+# Break-set condition
 zrt_break <- behdat_filtered_z_rt %>%
   filter(condition == "break")
 
-summary(aov(z_rt ~ (type * valence), data = zrt_break))
+zrt_break_aov <- aov_ez(id = "id", dv = "z_rt", data = zrt_break, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_break_aov
 
+# Match-set condition
 zrt_match <- behdat_filtered_z_rt %>%
   filter(condition == "match")
 
-summary(aov(z_rt ~ (type * valence), data = zrt_match))
+zrt_match_aov <- aov_ez(id = "id", dv = "rt", data = zrt_match, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_match_aov
 
+# No-set condition
 zrt_noset <- behdat_filtered_z_rt %>%
   filter(condition == "noset")
 
-summary(aov(z_rt ~ (type * valence), data = zrt_noset))
+zrt_noset_aov <- aov_ez(id = "id", dv = "rt", data = zrt_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_noset_aov
 
+# Perseverance-set condition
 zrt_pers <- behdat_filtered_z_rt %>%
   filter(condition == "pers")
 
-summary(aov(z_rt ~ (type * valence), data = zrt_pers))
-
+zrt_pers_aov <- aov_ez(id = "id", dv = "rt", data = zrt_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_pers_aov
 ```
+
+
 
 ### Correlation with data
 ```{r}
@@ -446,7 +512,7 @@ mw_dominant <- mw_freq %>%
 mw_dominant
 ```
 
-## Operator frequency
+### Operator frequency
 ```{r}
 op_freq <- opdat %>%
   filter(success == TRUE) %>%
@@ -472,3 +538,93 @@ ggplot(op_freq, aes(x = operator, y = freq_mean, group = desc(type), fill = type
   plot_theme
 
 ```
+
+## Transition probabilities between operators
+```{r}
+calc.trans.probs <- function(dat, variable) {
+  
+  dat <- droplevels(dat)
+  
+  vals <- sort(unique(dat[[variable]]))
+  
+  p <- matrix(nrow = length(vals), ncol = length(vals), 0)
+  row.names(p) <- vals
+  colnames(p) <- vals
+  
+  for (i in 1:(nrow(dat) - 1)) {
+    # Go over items in sets of two
+    # If they're from the same participant, count the transition
+    if (dat$participant[i] == dat$participant[i+1] & dat$type[i] == dat$type[i+1]) {
+      p[dat[[variable]][i], dat[[variable]][i+1]] <- p[dat[[variable]][i], dat[[variable]][i+1]] + 1
+    }
+  }
+  
+  # Convert counts to probability
+  p <- p / rowSums(p)
+
+  return(p)
+}
+
+plot.trans.probs.ops <- function(p, style = "circular") {
+  # Plot transition probabilities between operators
+  
+  on_task = which(!str_detect(labels(p)[[1]], "wander|memory"))
+  wandering = which(str_detect(labels(p)[[1]], "wander|memory"))
+  groups = list("on task" = on_task, "wandering" = wandering)
+  
+  p[round(p,2) == 0] = NA # Remove zero-probabilities from plot
+  
+  qgraph(
+    p, # transition probabilities, rounded to two decimal places
+    groups = groups,
+    layout = style,
+    layout.control = 0.9,
+    vsize = 5,
+    esize = 5,
+    #mar = c(8,7,8,7), # Margin size (bottom, left, top, right)
+    labels = labels(p)[[1]],
+    label.scale = FALSE,
+    curveAll = TRUE,
+    curveDefault = 1.05,
+    edge.labels = TRUE, # Show numbers on arrows
+    edge.label.cex = 1, # Size of edge labels
+    border.width = 2, # Width of the borders of the nodes
+    colFactor = 0.15, # controls degree of transparancy
+    asize = 2, # Size of arrow heads
+    maximum = 0.2 # Maximum transition probability, used for scaling
+    #filetype = "pdf", # set to "pdf" or "tex" for standalone files
+    #filename = paste0(gsub(" ", "_", graph_title))
+  )
+}
+
+
+
+opdatcontrol <- opdat %>%
+  mutate(on_task = if_else(on_task, "on task", "wandering")) %>%
+  filter(type == "control model", success == TRUE)
+
+opdatdepr <- opdat %>%
+  mutate(on_task = if_else(on_task, "on task", "wandering")) %>%
+  filter(type =="depressed model", success == TRUE) 
+```
+
+### Between on-task and off-task
+```{r}
+calc.trans.probs(opdatcontrol, "on_task") %>%
+  plot.trans.probs.ops()
+
+calc.trans.probs(opdatdepr, "on_task") %>%
+  plot.trans.probs.ops()
+```
+
+### Between individual operators
+```{r}
+calc.trans.probs(opdatcontrol, "operator") %>%
+  plot.trans.probs.ops()
+
+
+
+calc.trans.probs(opdatdepr, "operator") %>%
+  plot.trans.probs.ops()
+```
+
