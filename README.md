@@ -14,6 +14,7 @@ This repository contains the code for the models and analyses in my master's the
 - [Data](#data)
     - [Converting `.fulltrace` to `.csv`](#converting-fulltrace-to-csv)
 - [Analysis](#analysis)
+    - [Notebooks](#notebooks)
 - [Read more](#read-more)
 
 
@@ -81,7 +82,12 @@ In both cases the script will produce a set of `.csv` files in the specified fol
 ## Analysis
 
 The [`analyis`](analysis) directory contains separate `R` scripts for analysing 0-back and 2-back model runs.
-These scripts produce the accuracy, response rate, and (z-transformed) response time plots shown in the thesis, along with additional analyses of operator selection and memory retrievals.
+These scripts reproduce the accuracy, response rate, and (z-transformed) response time plots shown in the thesis, along with the presented statistical tests, and additional analyses of operator selection.
+
+#### Notebooks
+- [0-back analysis notebook](http://htmlpreview.github.io/?https://github.com/maartenvandervelde/emotional-n-back/blob/master/analysis/0back_model_analysis.nb.html)
+- [2-back analysis notebook](http://htmlpreview.github.io/?https://github.com/maartenvandervelde/emotional-n-back/blob/master/analysis/2back_model_analysis.nb.html)
+
 
 
 
