@@ -7,6 +7,10 @@ output:
     toc: TRUE
     highlight: tango
     smart: no
+  html_notebook:
+    toc: TRUE
+    highlight: tango
+    smart: no
 ---
 
 ```{r setup, include=FALSE}
@@ -18,7 +22,6 @@ knitr::opts_chunk$set(message = FALSE)
 
 ```{r}
 library(tidyverse)
-library(scales)
 library(forcats)
 library(afex)
 library(lsmeans)
@@ -27,8 +30,8 @@ options("tikzDocumentDeclaration" = "\\documentclass[12pt]{article}\n") # Defaul
 
 use_tikz = FALSE # set to TRUE to save .tex versions of the plots
 
-data_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/data/0back/"
-fig_path <- "/Users/maarten/Dropbox (Work)/Masterproject/emotional-n-back/fig/"
+data_path <- "../data/0back/"
+fig_path <- "../fig/"
 
 
 # Plot groups
@@ -60,8 +63,8 @@ lgdat$response <- factor(lgdat$response, levels = rev(levels(lgdat$response)))
 
 ### Model data
 ```{r}
-control_dir <- paste0(data_path, "020180117f")
-depressed_dir <- paste0(data_path, "020180117g")
+control_dir <- paste0(data_path, "control50runs")
+depressed_dir <- paste0(data_path, "depressed50runs")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = control_dir, pattern="beh.csv", full.names = TRUE),1)
@@ -137,7 +140,7 @@ if (use_tikz) {
 ### ANOVA & post-hoc contrasts
 ```{r}
 # https://cran.r-project.org/web/packages/afex/vignettes/afex_anova_example.html
-acc_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered, between = "type", within = c("stimulus", "expected_response"))
+acc_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered, between = "type", within = c("stimulus", "expected_response"), fun_aggregate = mean)
 acc_aov
 
 emmeans(acc_aov, ~ expected_response) %>%
@@ -162,12 +165,6 @@ acc_data <- accdat_lg %>%
   pull(acc_mean)
 
 cor(acc_model, acc_data)
-
-cosine.similarity <- function(a, b) {
-  a %*% b / (sqrt(a%*%a) * sqrt(b%*%b))
-}
-
-cosine.similarity(acc_model, acc_data)
 ```
 
 
@@ -213,7 +210,7 @@ if (use_tikz) {
 
 ### ANOVA
 ```{r}
-rr_aov <- aov_ez(id = "id", dv = "responded", data = behdat, between = "type", within = c("stimulus", "expected_response"))
+rr_aov <- aov_ez(id = "id", dv = "responded", data = behdat, between = "type", within = c("stimulus", "expected_response"), fun_aggregate = mean)
 rr_aov
 
 emmeans(rr_aov, ~ type) %>%
@@ -221,7 +218,6 @@ emmeans(rr_aov, ~ type) %>%
 
 emmeans(rr_aov, ~ expected_response) %>%
   pairs(adjust = "bonf")
-
 ```
 
 ### Correlation with data
@@ -235,9 +231,6 @@ rr_data <- respdat_lg %>%
   pull(rr_mean)
 
 cor(rr_model, rr_data)
-
-cosine.similarity(rr_model, rr_data)
-
 ```
 
 
@@ -279,7 +272,7 @@ if (use_tikz) {
 
 ### ANOVA
 ```{r}
-rt_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered, between = "type", within = c("stimulus", "expected_response"))
+rt_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered, between = "type", within = c("stimulus", "expected_response"), fun_aggregate = mean)
 rt_aov
 
 emmeans(rt_aov, ~ type) %>%
@@ -293,8 +286,6 @@ emmeans(rt_aov, ~ expected_response) %>%
 
 emmeans(rt_aov, ~ stimulus:expected_response) %>%
   pairs(adjust = "bonf")
-
-
 ```
 
 
@@ -346,7 +337,7 @@ if (use_tikz) {
 
 ### ANOVA
 ```{r}
-zrt_aov <- aov_ez(id = "id", dv = "z_rt", data = behdat_filtered_z_rt, between = "type", within = c("stimulus", "expected_response"))
+zrt_aov <- aov_ez(id = "id", dv = "z_rt", data = behdat_filtered_z_rt, between = "type", within = c("stimulus", "expected_response"), fun_aggregate = mean)
 zrt_aov
 
 emmeans(zrt_aov, ~ stimulus) %>%
@@ -370,8 +361,6 @@ zrt_data <- z_rtdat_lg %>%
   pull(z_rt_mean)
 
 cor(zrt_model, zrt_data)
-
-cosine.similarity(zrt_model, zrt_data)
 ```
 
 
@@ -425,7 +414,7 @@ mw_dominant
 ```
 
 
-## Operator frequency
+### Operator frequency
 ```{r}
 op_freq <- opdat %>%
   filter(success == TRUE) %>%
@@ -437,9 +426,7 @@ op_freq <- opdat %>%
   summarise(freq_mean = mean(freq), freq_sd = sd(freq))
 
 
-
-
-ggplot(op_freq, aes(x = operator, y = freq_mean, group = desc(type), fill = type)) +
+p <- ggplot(op_freq, aes(x = operator, y = freq_mean, group = desc(type), fill = type)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   coord_flip() +
   facet_grid(on_task ~ ., scales = "free_y", switch = "both", as.table = FALSE, labeller = labeller(on_task = c("TRUE" = "Task operators", "FALSE" = "Mind-wandering operators"))) +
@@ -450,6 +437,7 @@ ggplot(op_freq, aes(x = operator, y = freq_mean, group = desc(type), fill = type
   fill_scale + 
   plot_theme
 
+print(p)
 ```
 
 
