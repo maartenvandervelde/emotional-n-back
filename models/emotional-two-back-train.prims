@@ -1,13 +1,16 @@
 
 
 define task emotional-two-back-train {
-
+	
 	// Goals
 	initial-goals: (update-rehearsal-loop wander)
 	goals: (process-stimulus make-response prepare)
+	
+	task-constants: (update-rehearsal-loop wander face face-observation two-back update-two-back old one-back update-one-back zero-back update-zero-back process-stimulus recognise-stimulus make-response prepare fixation focus face-expression press-key same diff memory self happy neutral sad error done linger)
+
 
 	// Activation-related settings
-	default-activation: -3 // lower bound on baselevel activation (default: none)
+	default-activation: 2 // lower bound on baselevel activation (default: none)
 	ans: 0 // activation noise (default: 0.2)
 	rt: -5 // retrieval threshold (default: -2)
 	lf: 0.1 // latency factor (default: 0.2)
@@ -441,9 +444,13 @@ define script {
 	
 	
 		// Set activation of face chunks depending on their expression (so some faces are recognised faster than others)
-		face_activation_happy = 3.3
-		face_activation_neutral = 0.3
-		face_activation_sad = 1.3
+//		face_activation_happy = 3.3
+//		face_activation_neutral = 0.3
+//		face_activation_sad = 1.3
+		
+		face_activation_happy = 2.1
+		face_activation_neutral = 2
+		face_activation_sad = 2
 		
 //		face_activation_happy = 1.3
 //		face_activation_neutral = 0.3

@@ -5,10 +5,12 @@ define task emotional-two-back-test {
 	// Goals
 	initial-goals: (update-rehearsal-loop wander)
 	goals: (process-stimulus make-response prepare)
+	
+	task-constants: (update-rehearsal-loop wander face face-observation two-back update-two-back old one-back update-one-back zero-back update-zero-back process-stimulus recognise-stimulus make-response prepare fixation focus face-expression press-key same diff memory self happy neutral sad error done linger)
 
 	// Activation-related settings
-	default-activation: -3 // lower bound on baselevel activation (default: none)
-	ans: 0.05 // activation noise (default: 0.2)
+	default-activation: 2 // lower bound on baselevel activation (default: none)
+	ans: 0.1 // activation noise (default: 0.2)
 	rt: -5 // retrieval threshold (default: -2)
 	lf: 0.1 // latency factor (default: 0.2)
 	le: 0.1 // latency exponent -- taken from ACT-R, but here it applies just to retrieval failures (default: 1.0)
@@ -20,7 +22,7 @@ define task emotional-two-back-test {
 	
 	// Partial matching
 	pm: t
-	mp: 1.0 // mismatch penalty (default: 5.0)
+	//mp: 2.0 // mismatch penalty (default: 5.0)
 }
 
 
