@@ -3,11 +3,11 @@ title: "Emotional 2-back model analysis"
 author: "Maarten van der Velde"
 date: "January 2018"
 output:
-  html_document:
+  html_notebook:
     highlight: tango
     smart: no
     toc: yes
-  html_notebook:
+  html_document:
     highlight: tango
     smart: no
     toc: yes
@@ -58,8 +58,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ### Model data
 ```{r}
-control_dir <- paste0(data_path, "20180120f")
-depressed_dir <- paste0(data_path, "20180118e")
+control_dir <- paste0(data_path, "20180121d")
+depressed_dir <- paste0(data_path, "20180121e")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = control_dir, pattern="beh.csv", full.names = TRUE),1)
@@ -168,7 +168,7 @@ if (use_tikz) {
   dev.off()
 }
 
-
+accdat_all %>% group_by(type) %>% summarise(mean(acc_mean))
 ```
 
 ### ANOVA
@@ -257,6 +257,8 @@ print(p)
 if (use_tikz) {
   dev.off()
 }
+
+respdat_all %>% group_by(type) %>% summarise(mean(rr_mean))
 ```
 
 ### ANOVA
@@ -338,6 +340,8 @@ print(p)
 if (use_tikz) {
   dev.off()
 }
+
+rtdat_all %>% group_by(type) %>% summarise(mean(rt_mean))
 ```
 ### ANOVA
 ```{r}
@@ -626,5 +630,27 @@ calc.trans.probs(opdatcontrol, "operator") %>%
 
 calc.trans.probs(opdatdepr, "operator") %>%
   plot.trans.probs.ops()
+```
+
+## Retrieval analysis
+```{r}
+mem_files <- c()
+mem_files[1] <- tail(list.files(path = control_dir, pattern="mems.csv", full.names = TRUE),1)
+mem_files[2] <- tail(list.files(path = depressed_dir, pattern="mems.csv", full.names = TRUE),1)
+
+memdatfull <- data.frame()
+for (i in 1:length(mem_files)) {
+  memdatfull <- rbind(memdatfull, read.csv(mem_files[i], header=TRUE,sep=","))
+}
+
+memdat <- memdatfull %>%
+  mutate(group = ifelse(model == levels(model)[1], model_names[1], model_names[2])) %>%
+  select(-model, -task_rep)
+
+
+memdat %>%
+  group_by(type, group) %>%
+  summarise(count = n(), latency_mean = mean(latency))
+
 ```
 
