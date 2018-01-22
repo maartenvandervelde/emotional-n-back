@@ -28,7 +28,7 @@ define task emotional-two-back-test {
 
 
 define action press-key {
-  latency: 0.35
+  latency: 0.5
   noise: 0.1
   distribution: uniform
   output: Pressing
