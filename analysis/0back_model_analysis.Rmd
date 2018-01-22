@@ -3,11 +3,11 @@ title: "Emotional 0-back model analysis"
 author: "Maarten van der Velde"
 date: "January 2018"
 output: 
-  html_document:
+  html_notebook:
     toc: TRUE
     highlight: tango
     smart: no
-  html_notebook:
+  html_document:
     toc: TRUE
     highlight: tango
     smart: no

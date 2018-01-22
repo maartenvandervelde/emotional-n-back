@@ -58,7 +58,7 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ### Model data
 ```{r}
-control_dir <- paste0(data_path, "20180121d")
+control_dir <- paste0(data_path, "20180122c")
 depressed_dir <- paste0(data_path, "20180121e")
 
 beh_files <- c()
