@@ -9,23 +9,27 @@ import re
 
 
 task_operators = [
-    "process-face",
-    "recognise-face",
-    "no-one-back",
-    "retrieve-one-back",
-    "failed-to-retrieve-one-back",
-    "retrieve-two-back",
-    "no-two-back",
-    "failed-to-retrieve-two-back",
-    "two-back-match-press-same",
-    "two-back-no-match-press-diff",
-	"update-one-back-cue",
-	"rehearse-one-back",
-	"rehearse-two-back",
-	"subvocalise-two-back",
-	"focus-on-fixation",
-	"focus-on-task"
+	"get-old-two-back",
+	"modify-old-two-back",
+	"cannot-retrieve-old-two-back",
+	"get-old-one-back",
+	"modify-old-one-back",
+	"cannot-retrieve-old-one-back",
+	"get-old-zero-back",
+	"modify-old-zero-back",
+	"push-modified-old-zero-back",
+	"cannot-retrieve-old-zero-back",
+	"process-face",
+	"recognise-face",
+	"get-two-back",
+	"two-back-matches",
+	"two-back-does-not-match",
+	"cannot-retrieve-two-back",
+	"respond-same",
+	"respond-diff",
+	"focus-on-fixation"
 ]
+
 
 def read_files_from_directory(path):
 	files = []
@@ -106,7 +110,7 @@ def main():
 				
 				# New participant run
 				if line.startswith("Run #"):
-					participant_num = int(re.search("[0-9]", line).group(0))
+					participant_num = participant_num + 1
 					
 				# Start of a new task (model) 
 				elif line.startswith("Running task"):
@@ -165,9 +169,9 @@ def main():
 				elif "Firing" in line:
 					operator_exec_time = operator_exec_time + 0.050
 									
-				# Compiling or reinforcing (part of) an operator (always takes 300 ms, but happens at same time as firing)
+				# Compiling or reinforcing (part of) an operator (takes no time with current model settings)
 				elif "Compiling" in line or "Reinforcing" in line:
-					operator_exec_time = operator_exec_time + 0.250
+					operator_exec_time = operator_exec_time + 0
 				
 				# Current operator has failed
 				elif "failed" in line:
