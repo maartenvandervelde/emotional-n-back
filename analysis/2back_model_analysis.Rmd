@@ -47,6 +47,17 @@ group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
 names(group_colours) <- plot_groups
 fill_scale <- scale_fill_manual(name = "", values = group_colours)
 
+# Functions to calculate model fit to data
+rsq <- function(model, data) {
+  as_tibble(cbind(c("pearson", "kendall", "spearman"),
+  c(cor(model, data, method = "pearson")^2,
+  cor(model, data, method = "kendall")^2,
+  cor(model, data, method = "spearman")^2)))
+}
+
+rmse <- function(model, data) {
+  sqrt(mean((model - data)^2))
+}
 ```
 
 ## Reading in the data
@@ -58,8 +69,8 @@ lgdat <- read.csv(paste0(data_path, "lgdat_2back.csv"))
 
 ### Model data
 ```{r}
-control_dir <- paste0(data_path, "20180122c")
-depressed_dir <- paste0(data_path, "20180121e")
+control_dir <- paste0(data_path, "control50runs")
+depressed_dir <- paste0(data_path, "depressed50runs")
 
 beh_files <- c()
 beh_files[1] <- tail(list.files(path = control_dir, pattern="beh.csv", full.names = TRUE),1)
@@ -178,35 +189,45 @@ accdat_all %>% group_by(type) %>% summarise(mean(acc_mean))
 behdat_filtered_break <- behdat_filtered %>%
   filter(condition == "break")
 
-acc_break_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_break, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_break_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_break, between = "type", within = "valence", fun_aggregate = mean)
 acc_break_aov
+
+emmeans(acc_break_aov, ~ type) %>%
+  pairs(adjust = "bonf")
 
 # Match-set condition
 behdat_filtered_match <- behdat_filtered %>%
   filter(condition == "match")
 
-acc_match_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_match, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_match_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_match, between = "type", within = "valence", fun_aggregate = mean)
 acc_match_aov
 
-emmeans(acc_match_aov, ~ stimulus) %>%
+emmeans(acc_match_aov, ~ type) %>%
   pairs(adjust = "bonf")
 
 # No-set condition
 behdat_filtered_noset <- behdat_filtered %>%
   filter(condition == "noset")
 
-acc_noset_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_noset_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_noset, between = "type", within = "valence", fun_aggregate = mean)
 acc_noset_aov
+
+emmeans(acc_noset_aov, ~ type) %>%
+  pairs(adjust = "bonf")
 
 # Perseverance-set condition
 behdat_filtered_pers <- behdat_filtered %>%
   filter(condition == "pers")
 
-acc_pers_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+acc_pers_aov <- aov_ez(id = "id", dv = "accuracy", data = behdat_filtered_pers, between = "type", within = "valence", fun_aggregate = mean)
 acc_pers_aov
+
+emmeans(acc_pers_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
 ```
 
-### Correlation with data
+### Fit to data
 ```{r}
 acc_model <- accdat_model %>%
   arrange(type, condition, valence) %>%
@@ -217,7 +238,8 @@ acc_data <- accdat_lg %>%
   pull(acc_mean)
 
 cor(acc_model, acc_data)
-
+rsq(acc_model, acc_data)
+rmse(acc_model, acc_data)
 ```
 
 ## Response rate
@@ -268,29 +290,53 @@ respdat_all %>% group_by(type) %>% summarise(mean(rr_mean))
 behdat_break <- behdat %>%
   filter(condition == "break")
 
-rr_break_aov <- aov_ez(id = "id", dv = "responded", data = behdat_break, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_break_aov <- aov_ez(id = "id", dv = "responded", data = behdat_break, between = "type", within = "valence", fun_aggregate = mean)
 rr_break_aov
+
+emmeans(rr_break_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rr_break_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rr_break_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
 
 # Match-set condition
 behdat_match <- behdat %>%
   filter(condition == "match")
 
-rr_match_aov <- aov_ez(id = "id", dv = "responded", data = behdat_match, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_match_aov <- aov_ez(id = "id", dv = "responded", data = behdat_match, between = "type", within = "valence", fun_aggregate = mean)
 rr_match_aov
+
+emmeans(rr_match_aov, ~ type) %>%
+  pairs(adjust = "bonf")
 
 # No-set condition
 behdat_noset <- behdat %>%
   filter(condition == "noset")
 
-rr_noset_aov <- aov_ez(id = "id", dv = "responded", data = behdat_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_noset_aov <- aov_ez(id = "id", dv = "responded", data = behdat_noset, between = "type", within = "valence", fun_aggregate = mean)
 rr_noset_aov
+
+emmeans(rr_noset_aov, ~ type) %>%
+  pairs(adjust = "bonf")
 
 # Perseverance-set condition
 behdat_pers<- behdat %>%
   filter(condition == "pers")
 
-rr_pers_aov <- aov_ez(id = "id", dv = "responded", data = behdat_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+rr_pers_aov <- aov_ez(id = "id", dv = "responded", data = behdat_pers, between = "type", within = "valence", fun_aggregate = mean)
 rr_pers_aov
+
+emmeans(rr_pers_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rr_pers_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rr_pers_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
 
 ```
 
@@ -305,6 +351,8 @@ rr_data <- respdat_lg %>%
   pull(rr_mean)
 
 cor(rr_model, rr_data)
+rsq(rr_model, rr_data)
+rmse(rr_model, rr_data)
 ```
 
 ## Response time
@@ -346,21 +394,56 @@ rtdat_all %>% group_by(type) %>% summarise(mean(rt_mean))
 ### ANOVA
 ```{r}
 # Break-set condition
-rt_break_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_break, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_break_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_break, between = "type", within = "valence", fun_aggregate = mean)
 rt_break_aov
 
+emmeans(rt_break_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_break_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_break_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
+
 # Match-set condition
-rt_match_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_match, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_match_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_match, between = "type", within = "valence", fun_aggregate = mean)
 rt_match_aov
 
+emmeans(rt_match_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_match_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_match_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
+
 # No-set condition
-rt_noset_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_noset_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_noset, between = "type", within = "valence", fun_aggregate = mean)
 rt_noset_aov
 
+emmeans(rt_noset_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_noset_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_noset_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
+
 # Perseverance-set condition
-rt_pers_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+rt_pers_aov <- aov_ez(id = "id", dv = "rt", data = behdat_filtered_pers, between = "type", within = "valence", fun_aggregate = mean)
 rt_pers_aov
 
+emmeans(rt_pers_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_pers_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(rt_pers_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
 ```
 
 ### Correlation with data
@@ -374,6 +457,8 @@ rt_data <- rtdat_lg %>%
   pull(rt_mean)
 
 cor(rt_model, rt_data)
+rsq(rt_model, rt_data)
+rmse(rt_model, rt_data)
 ```
 
 
@@ -386,7 +471,8 @@ behdat_filtered_z_rt <- behdat_filtered %>%
   mutate(overall_rt = mean(rt)) %>%
   group_by(participant, type, condition, valence, overall_rt) %>%
   mutate(condition_rt = mean(rt), condition_rt_sd = sd(rt)) %>%
-  mutate(z_rt = (condition_rt - overall_rt) / condition_rt_sd)
+  mutate(z_rt = (condition_rt - overall_rt) / condition_rt_sd) %>%
+  na.omit() # A single observation in a condition cannot be z-transformed
 
 z_rtdat_model <- behdat_filtered_z_rt %>%
   group_by(type, condition, valence) %>%
@@ -426,29 +512,62 @@ if (use_tikz) {
 zrt_break <- behdat_filtered_z_rt %>%
   filter(condition == "break")
 
-zrt_break_aov <- aov_ez(id = "id", dv = "z_rt", data = zrt_break, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_break_aov <- aov_ez(id = "id", dv = "z_rt", data = zrt_break, between = "type", within = "valence", fun_aggregate = mean)
 zrt_break_aov
+
+emmeans(zrt_break_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(zrt_break_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
 
 # Match-set condition
 zrt_match <- behdat_filtered_z_rt %>%
   filter(condition == "match")
 
-zrt_match_aov <- aov_ez(id = "id", dv = "rt", data = zrt_match, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_match_aov <- aov_ez(id = "id", dv = "rt", data = zrt_match, between = "type", within = "valence", fun_aggregate = mean)
 zrt_match_aov
+
+emmeans(zrt_match_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(zrt_match_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(zrt_match_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
 
 # No-set condition
 zrt_noset <- behdat_filtered_z_rt %>%
   filter(condition == "noset")
 
-zrt_noset_aov <- aov_ez(id = "id", dv = "rt", data = zrt_noset, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_noset_aov <- aov_ez(id = "id", dv = "rt", data = zrt_noset, between = "type", within = "valence", fun_aggregate = mean)
 zrt_noset_aov
+
+emmeans(zrt_noset_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(zrt_noset_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(zrt_noset_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
 
 # Perseverance-set condition
 zrt_pers <- behdat_filtered_z_rt %>%
   filter(condition == "pers")
 
-zrt_pers_aov <- aov_ez(id = "id", dv = "rt", data = zrt_pers, between = "type", within = "stimulus", fun_aggregate = mean)
+zrt_pers_aov <- aov_ez(id = "id", dv = "rt", data = zrt_pers, between = "type", within = "valence", fun_aggregate = mean)
 zrt_pers_aov
+
+emmeans(zrt_pers_aov, ~ type) %>%
+  pairs(adjust = "bonf")
+
+emmeans(zrt_pers_aov, ~ valence) %>%
+  pairs(adjust = "bonf")
+
+emmeans(zrt_pers_aov, ~ type:valence) %>%
+  pairs(adjust = "bonf")
 ```
 
 
@@ -464,6 +583,8 @@ zrt_data <- z_rtdat_lg %>%
   pull(z_rt_mean)
 
 cor(zrt_model, zrt_data)
+rsq(zrt_model, zrt_data)
+rmse(zrt_model, zrt_data)
 ```
 
 ## Operator analysis

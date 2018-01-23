@@ -47,6 +47,18 @@ group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
 names(group_colours) <- plot_groups
 fill_scale <- scale_fill_manual(name = "", values = group_colours)
 
+# Functions to calculate model fit to data
+rsq <- function(model, data) {
+  as_tibble(cbind(c("pearson", "kendall", "spearman"),
+  c(cor(model, data, method = "pearson")^2,
+  cor(model, data, method = "kendall")^2,
+  cor(model, data, method = "spearman")^2)))
+}
+
+rmse <- function(model, data) {
+  sqrt(mean((model - data)^2))
+}
+
 ```
 
 
@@ -153,7 +165,7 @@ emmeans(acc_aov, ~ expected_response:stimulus) %>%
   pairs(adjust = "bonf")
 ```
 
-### Correlation with data
+### Fit to data
 ```{r}
 
 acc_model <- accdat_model %>%
@@ -164,7 +176,8 @@ acc_data <- accdat_lg %>%
   arrange(type, stimulus, expected_response) %>%
   pull(acc_mean)
 
-cor(acc_model, acc_data)
+rsq(acc_model, acc_data)
+rmse(acc_model, acc_data)
 ```
 
 
@@ -220,7 +233,7 @@ emmeans(rr_aov, ~ expected_response) %>%
   pairs(adjust = "bonf")
 ```
 
-### Correlation with data
+### Fit to data
 ```{r}
 rr_model <- respdat_model %>%
   arrange(type, expression, expected_response) %>%
@@ -230,7 +243,8 @@ rr_data <- respdat_lg %>%
   arrange(type, expression, expected_response) %>%
   pull(rr_mean)
 
-cor(rr_model, rr_data)
+rsq(rr_model, rr_data)
+rmse(rr_model, rr_data)
 ```
 
 
@@ -350,7 +364,7 @@ emmeans(zrt_aov, ~ stimulus:expected_response) %>%
   pairs(adjust = "bonf")
 ```
 
-### Correlation with data
+### Fit to data
 ```{r}
 zrt_model <- z_rtdat_model %>%
   arrange(type, expression, expected_response) %>%
@@ -360,7 +374,8 @@ zrt_data <- z_rtdat_lg %>%
   arrange(type, expression, expected_response) %>%
   pull(z_rt_mean)
 
-cor(zrt_model, zrt_data)
+rsq(zrt_model, zrt_data)
+rmse(zrt_model, zrt_data)
 ```
 
 
