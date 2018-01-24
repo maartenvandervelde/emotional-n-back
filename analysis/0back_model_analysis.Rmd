@@ -40,7 +40,16 @@ model_names = c("control model", "depressed model")
 plot_groups = c(rbind(data_names, model_names))
 
 # Plot theming
-plot_theme <- theme_bw()
+plot_theme <- theme_classic() +
+        theme(
+            axis.text.x = element_text(size = rel(0.9), colour = "black"),
+            axis.text.y = element_text(size = rel(0.9), colour = "black"),
+            axis.title = element_text(size = rel(0.9)),
+            legend.title = element_text(size = rel(0.9)),
+            legend.text = element_text(size = rel(0.8)),
+            legend.key.size = unit(0.4, "cm"),
+            strip.background = element_rect(colour = "white"))
+
 
 # Custom colour scale for plots
 group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
@@ -139,7 +148,7 @@ p <- ggplot(accdat_all, aes(x = expected_response, y = acc_mean, group = type, f
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=acc_mean-acc_sd, ymax=acc_mean+acc_sd), width=0.2, position = position_dodge(width = 0.9)) +
-  labs(x = "Expected response", y = "Mean accuracy") +
+  labs(x = "Expected response", y = "Accuracy") +
   fill_scale + 
   plot_theme
 
@@ -276,7 +285,7 @@ p <- ggplot(rtdat_all, aes(x = expected_response, y = rt_mean, group = type, fil
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=rt_mean-rt_sd, ymax=rt_mean+rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
-  labs(x = "Response", y = "Mean RT (s)") +
+  labs(x = "Response", y = "Response time (s)") +
   fill_scale +
   plot_theme
 
@@ -356,7 +365,7 @@ p <- ggplot(z_rtdat_all, aes(x = expected_response, y = z_rt_mean, group = type,
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=z_rt_mean-z_rt_sd, ymax=z_rt_mean+z_rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
-  labs(x = "Response", y = "z-transformed mean RT") +
+  labs(x = "Response", y = "z-transformed RT") +
   fill_scale + 
   plot_theme
 
