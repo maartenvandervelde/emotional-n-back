@@ -1,6 +1,6 @@
 # **Emotional n-back**
 
-This repository contains the code for the models and analyses in my master's thesis: **A Computational Cognitive Model of Rumination**.
+This repository contains the code for the models and analyses in my master's thesis: **Modelling the Effects of Depression on Working Memory**.
 
 
 ## Table of contents
