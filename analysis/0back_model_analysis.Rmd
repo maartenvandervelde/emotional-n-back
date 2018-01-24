@@ -176,6 +176,7 @@ acc_data <- accdat_lg %>%
   arrange(type, stimulus, expected_response) %>%
   pull(acc_mean)
 
+cor(acc_model, acc_data)
 rsq(acc_model, acc_data)
 rmse(acc_model, acc_data)
 ```
@@ -184,15 +185,15 @@ rmse(acc_model, acc_data)
 ## Response rate
 ```{r}
 respdat_model <- behdat %>%
-  group_by(participant, type, target, expected_response, responded) %>%
+  group_by(participant, type, stimulus, expected_response, responded) %>%
   tally() %>%
-  group_by(participant, type, target, expected_response) %>%
+  group_by(participant, type, stimulus, expected_response) %>%
   mutate(freq = n/sum(n)) %>% # Represent as fraction
   filter(responded == TRUE) %>%
   select(-responded, -n) %>%
-  group_by(type, target, expected_response) %>%
+  group_by(type, stimulus, expected_response) %>%
   summarise(rr_mean = mean(freq), rr_sd = sd(freq)) %>%
-  rename(expression = target)
+  rename(expression = stimulus)
 
 respdat_lg <- lgdat %>%
   mutate(rr_sd = NA) %>%
@@ -207,7 +208,7 @@ if (use_tikz) {
   tikz(file = paste0(fig_path, "0backResponseRate.tex"), width = 6, height = 3)
 }
 p <- ggplot(respdat_all, aes(x = expected_response, y = rr_mean, group = type, fill = type)) +
-  facet_grid(~expression, labeller = labeller(expression = c(happy = "target: happy", neutral = "target: neutral", sad = "target: sad"))) +
+  facet_grid(~expression, labeller = labeller(expression = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
   geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=rr_mean-rr_sd, ymax=rr_mean+rr_sd), width=0.2, position = position_dodge(width = 0.9)) +
@@ -243,6 +244,7 @@ rr_data <- respdat_lg %>%
   arrange(type, expression, expected_response) %>%
   pull(rr_mean)
 
+cor(rr_model, rr_data)
 rsq(rr_model, rr_data)
 rmse(rr_model, rr_data)
 ```
@@ -300,6 +302,21 @@ emmeans(rt_aov, ~ expected_response) %>%
 
 emmeans(rt_aov, ~ stimulus:expected_response) %>%
   pairs(adjust = "bonf")
+```
+
+### Fit to data
+```{r}
+rt_model <- rtdat_model %>%
+  arrange(type, expression, expected_response) %>%
+  pull(rt_mean)
+
+rt_data <- rtdat_lg %>%
+  arrange(type, expression, expected_response) %>%
+  pull(rt_mean)
+
+cor(rt_model, rt_data)
+rsq(rt_model, rt_data)
+rmse(rt_model, rt_data)
 ```
 
 
@@ -374,6 +391,7 @@ zrt_data <- z_rtdat_lg %>%
   arrange(type, expression, expected_response) %>%
   pull(z_rt_mean)
 
+cor(zrt_model, zrt_data)
 rsq(zrt_model, zrt_data)
 rmse(zrt_model, zrt_data)
 ```

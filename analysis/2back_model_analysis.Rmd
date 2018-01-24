@@ -340,7 +340,7 @@ emmeans(rr_pers_aov, ~ type:valence) %>%
 
 ```
 
-### Correlation with data
+### Fit to data
 ```{r}
 rr_model <- respdat_model %>%
   arrange(type, condition, valence) %>%
@@ -446,7 +446,7 @@ emmeans(rt_pers_aov, ~ type:valence) %>%
   pairs(adjust = "bonf")
 ```
 
-### Correlation with data
+### Fit to data
 ```{r}
 rt_model <- rtdat_model %>%
   arrange(type, condition, valence) %>%
@@ -572,7 +572,7 @@ emmeans(zrt_pers_aov, ~ type:valence) %>%
 
 
 
-### Correlation with data
+### Fit to data
 ```{r}
 zrt_model <- z_rtdat_model %>%
   arrange(type, condition, valence) %>%
@@ -694,7 +694,7 @@ plot.trans.probs.ops <- function(p, style = "circular") {
   # Plot transition probabilities between operators
   
   on_task = which(!str_detect(labels(p)[[1]], "wander|memory"))
-  wandering = which(str_detect(labels(p)[[1]], "wander|memory"))
+  wandering = which(str_detect(labels(p)[[1]], "wander|memory|linger"))
   groups = list("on task" = on_task, "wandering" = wandering)
   
   p[round(p,2) == 0] = NA # Remove zero-probabilities from plot
