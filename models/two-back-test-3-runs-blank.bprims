@@ -1,3 +1,0 @@
-repeat 3
-	run emotional-two-back-train emotional-two-back-train 1
-	reset
