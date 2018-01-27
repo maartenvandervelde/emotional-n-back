@@ -9,7 +9,7 @@
 
 
 
-define task emotional-zero-back-train {
+define task emotional-zero-back-test {
 		
 	// Goals
 	initial-goals: (do-zero-back wander)
@@ -29,137 +29,8 @@ define task emotional-zero-back-train {
 
 }
 
-
-
-define goal do-zero-back {
-	
-	operator store-target {
- 		"The target expression that appears at the start of the block is stored in the goal buffer"
- 		V1 	= target
- 		==>
- 		V2 -> G3
- 		press-key -> AC1
- 		start -> AC2
- 	}
-
- 	operator process-face {
- 		"If a face is perceived, recognise its expression (approximated via a DM retrieval)"
- 		V1 = face
- 		V2 <> nil
- 		V3 = nil
- 		RT1 = nil
- 		==>
- 		face-expression -> RT1
- 		V2 -> RT3
- 	}
-
- 	operator face-expression-matches-target {
- 		"If a face has been categorised and its expression matches the target, press 'same'."
- 		RT1 = face-expression
- 		RT2 = G3
- 		V3 = nil // check that no response has been made
- 		==>
- 		press-key -> AC1
- 		same -> AC2
- 	}
-
- 	operator face-expression-does-not-match-target {
- 		"If a face has been categorised and its expression does not match the target, press 'diff'."
- 		RT1 = face-expression
- 		RT2 <> G3
- 		V3 = nil // check that no response has been made
- 		==>
- 		press-key -> AC1
- 		diff -> AC2
- 	}
-
- 	operator face-expression-not-recognised-respond-same {
- 		"If a face has not been categorised (because retrieval failed), press 'same' randomly."
- 		RT1 = error
- 		V3 = nil // check that no response has been made
- 		==>
- 		press-key -> AC1
- 		same -> AC2
- 	}
-
- 	operator face-expression-not-recognised-respond-diff {
- 		"If a face has not been categorised (because retrieval failed), press 'diff' randomly."
- 		RT1 = error
- 		V3 = nil // check that no response has been made
- 		==>
- 		press-key -> AC1
- 		diff -> AC2
- 	}
-
- 	operator done-subvocalise-target {
- 		"When there is nothing left to do, subvocalise the target"
- 		V3 = done
- 		==>
- 		subvocalise -> AC1
- 		G3 -> AC2
- 	}
-	
-	operator focus-on-fixation {
-		"Focus on the fixation cross in preparation for the next stimulus"
-		V1 = fixation
-		==>
-		focus -> AC1
-	}
-
-
-}
-
-
-
-define goal wander {
-	
-	operator ignore-face-wander-instead {
-		"Start mind-wandering when a face stimulus appears"
-		V1 = face
-		V2 <> nil
-		V3 = nil
-		==>
-		memory -> RT1
-		self -> RT2
-	}
-	
-	operator ignore-expression-wander-instead {
-		"Start mind-wandering when a facial expression has been retrieved"
-		RT1 = face-expression
-		==>
-		memory -> RT1
-		self -> RT2
-	}
-	
-	operator done-retrieve-random-memory {
-		"When a response has already been made, retrieve a random memory"
-		V3 = done
-		==>
-		memory -> RT1
-		self -> RT2
-	}
-	
-	operator process-memory-retrieve-next {
-		"When a random memory has been retrieved, place it in WM and make a new retrieval request"
-		RT1 = memory
-		==>
-		RT3 -> WM1
-
-		memory -> RT1
-		self -> RT2
-	}
-
-}
-
-
-define facts {		
-	(memory x y) // Explicit definition prevents unintended retrievals of singleton "memory" chunk during mind-wandering	
-}
-
-
-
 define action press-key {
-  latency: 0.5
+  latency: 0.4
   noise: 0.1
   distribution: uniform
   output: Pressing
@@ -210,32 +81,6 @@ define script {
 		all-faces[i] = ["happy", happy-faces[i]]		
 		all-faces[i + 46] = ["neutral", neutral-faces[i]]
 		all-faces[i + 92] = ["sad", sad-faces[i]]	
-	}
-	
-	// Add all faces to the model's DM (this allows it to recognise facial expressions)
-	for i in 0 to 137 {
-		face = all-faces[i]
-		chunk-name = "face" + i
-		expression = face[0]
-		image = face[1]
-		add-dm(chunk-name, "face-expression", expression, image)		
-		
-		// set activation of face depending on its mood
-		face_activation_happy = 1
-		face_activation_neutral = 0.4
-		face_activation_sad = 0.4
-		
-		if (expression == "happy") {
-			set-activation(chunk-name, face_activation_happy)
-		}
-		
-		if (expression == "neutral") {
-			set-activation(chunk-name, face_activation_neutral)
-		}
-		
-		if (expression == "sad") {
-			set-activation(chunk-name, face_activation_sad)
-		}
 	}
 		
 	all-faces = shuffle(all-faces)
@@ -305,54 +150,7 @@ define script {
 		}
 	}
 	
-	
-	// Create neutral off-task memories (Added 10/01/2018)
-	// Slots:
-	// title (e.g. memory1): for convenience.
-	// memory: indicates chunk type; used as first retrieval cue.
-	// self: used as an additional retrieval cue (without it we get weird retrievals of random singletons due to partial matching).
-	// name (e.g. memory1): distinguishes one memory from another (the chunk title alone is not sufficient).
-	
-	for i in 0 to 30 {
-		title = "memory" + i
-		add-dm(title, "memory", "self", title)
-	}
-	
-	
-	// Set operator activation
-	task-operator-activation = 2
-	mw-operator-activation = 2.25
-	
-	task-operators = [
-		"store-target",
-		"process-face",
-		"face-expression-matches-target",
-		"face-expression-does-not-match-target",
-		"face-expression-not-recognised-respond-same",
-		"face-expression-not-recognised-respond-diff",
-		"done-subvocalise-target",
-		"focus-on-fixation"
-	]
-	
-	for task-op in task-operators { 
-		set-activation(task-op, task-operator-activation)
-	}
-	
-	mw-operators = [
-		"ignore-face-wander-instead",
-		"ignore-expression-wander-instead",
-		"done-retrieve-random-memory",
-		"process-memory-retrieve-next"//,
-		//"process-memory-auto-respond-same",
-		//"process-memory-auto-respond-diff"
-	]
-	
-	for mw-op in mw-operators {
-		set-activation(mw-op, mw-operator-activation)
-	}	
-	
-	
-	
+		
 	//////////////////////
 	/// RUN EXPERIMENT ///
 	//////////////////////

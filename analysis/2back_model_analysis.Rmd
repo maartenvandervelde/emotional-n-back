@@ -193,6 +193,47 @@ if (use_tikz) {
 accdat_all %>% group_by(type) %>% summarise(mean(acc_mean))
 ```
 
+### Aggregate within conditions
+```{r}
+accdat_model_agg <- behdat_filtered %>%
+  group_by(participant, type, condition) %>%
+  summarise(acc = mean(accuracy)) %>%
+  group_by(type, condition) %>%
+  summarise(acc_mean = mean(acc), acc_sd = sd(acc))
+
+
+accdat_lg_agg <- lgdat %>%
+  rename(valence = expression) %>%
+  mutate(acc_sd = NA) %>%
+  group_by(type, condition) %>%
+  summarise(acc_mean = mean(acc_mean), acc_sd = mean(acc_sd))
+  
+  
+accdat_all_ag <- rbind(data.frame(accdat_lg_agg), data.frame(accdat_model_agg)) %>%
+  mutate(type = fct_relevel(type, plot_groups)) %>%
+  mutate(condition = fct_relevel(condition, condition_order))
+
+
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backAccuracyAggregated.tex"), width = 6, height = 3)
+}
+p <- ggplot(accdat_all_ag, aes(x = condition, y = acc_mean, group = type, fill = type)) +
+  geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=acc_mean-acc_sd, ymax=acc_mean+acc_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Condition", y = "Accuracy") +
+  scale_x_discrete(labels= c("match set", "break set", "no set", "perseveration set")) +
+  fill_scale + 
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+
+```
+
 ### ANOVA
 
 ```{r}
@@ -293,6 +334,46 @@ if (use_tikz) {
 }
 
 respdat_all %>% group_by(type) %>% summarise(mean(rr_mean))
+```
+### Aggregate within conditions
+```{r}
+respdat_model_agg <- behdat %>%
+  group_by(type, participant, condition, responded) %>%
+  tally() %>%
+  group_by(type, participant, condition) %>%
+  mutate(freq = n/sum(n)) %>% # Represent as fraction
+  filter(responded == TRUE) %>%
+  select(-responded, -n) %>%
+  group_by(type, condition) %>%
+  summarise(rr_mean = mean(freq), rr_sd = sd(freq))
+
+respdat_lg_agg <- respdat_lg %>%
+  group_by(type, condition) %>%
+  summarise(rr_mean = mean(rr_mean), rr_sd = mean(rr_sd))
+
+respdat_all_agg <- rbind(data.frame(respdat_lg_agg), data.frame(respdat_model_agg)) %>%
+  mutate(type = fct_relevel(type, plot_groups)) %>%
+  mutate(condition = fct_relevel(condition, condition_order))
+
+
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backResponseRateAggregated.tex"), width = 6, height = 3)
+}
+p <- ggplot(respdat_all_agg, aes(x = condition, y = rr_mean, group = type, fill = type)) +
+  geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=rr_mean-rr_sd, ymax=rr_mean+rr_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Condition", y = "Response rate") +
+  scale_x_discrete(labels= c("match set", "break set", "no set", "perseveration set")) +
+  fill_scale + 
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+
 ```
 
 ### ANOVA
@@ -404,6 +485,46 @@ if (use_tikz) {
 
 rtdat_all %>% group_by(type) %>% summarise(mean(rt_mean))
 ```
+
+### Aggregate within conditions
+```{r}
+rtdat_model_agg <- behdat_filtered %>%
+  filter(outcome == "correct") %>%
+  group_by(type, participant, condition) %>%
+  summarise(rt = mean(rt)) %>%
+  group_by(type, condition) %>%
+  summarise(rt_mean = mean(rt), rt_sd = sd(rt))
+
+rtdat_lg_agg <- lgdat %>%
+  rename(valence = expression) %>%
+  group_by(type, condition) %>%
+  summarise(rt_mean = mean(rt_mean), rt_sd = mean(rt_sd))
+
+rtdat_all_agg <- rbind(data.frame(rtdat_lg_agg), data.frame(rtdat_model_agg)) %>%
+  mutate(type = fct_relevel(type, plot_groups)) %>%
+  mutate(condition = fct_relevel(condition, condition_order))
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backResponseTimeAggregated.tex"), width = 6, height = 3)
+}
+
+p <- ggplot(rtdat_all_agg, aes(x = condition, y = rt_mean, group = type, fill= type)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=rt_mean-rt_sd, ymax=rt_mean+rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Condition", y = "Response time (s)") +
+  scale_x_discrete(labels = c("match set", "break set", "no set", "perseveration set")) +
+  fill_scale +
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+
+```
+
+
 ### ANOVA
 ```{r}
 # Break-set condition
@@ -518,6 +639,50 @@ if (use_tikz) {
   dev.off()
 }
 
+```
+### Break set only
+```{r}
+z_rtdat_break <- z_rtdat_all %>%
+  filter(condition == "break")
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backResponseTimeZbreak.tex"), width = 6, height = 3)
+}
+
+p <- ggplot(z_rtdat_break, aes(x = valence, y = z_rt_mean, group = type, fill= type)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=z_rt_mean-z_rt_sd, ymax=z_rt_mean+z_rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Valence", y = "z-transformed RT") +
+  fill_scale + 
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
+```
+### No set only
+```{r}
+z_rtdat_noset <- z_rtdat_all %>%
+  filter(condition == "noset")
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "2backResponseTimeZnoset.tex"), width = 6, height = 3)
+}
+
+p <- ggplot(z_rtdat_noset, aes(x = valence, y = z_rt_mean, group = type, fill= type)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  geom_errorbar(aes(ymin=z_rt_mean-z_rt_sd, ymax=z_rt_mean+z_rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(x = "Valence", y = "z-transformed RT") +
+  fill_scale + 
+  plot_theme
+
+print(p)
+if (use_tikz) {
+  dev.off()
+}
 ```
 
 ### ANOVA

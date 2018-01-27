@@ -159,7 +159,7 @@ define facts {
 
 
 define action press-key {
-  latency: 0.5
+  latency: 0.4
   noise: 0.1
   distribution: uniform
   output: Pressing
@@ -321,7 +321,7 @@ define script {
 	
 	// Set operator activation
 	task-operator-activation = 2
-	mw-operator-activation = 2.25
+	mw-operator-activation = 2
 	
 	task-operators = [
 		"store-target",
