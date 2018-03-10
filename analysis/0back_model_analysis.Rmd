@@ -1,7 +1,7 @@
 ---
 title: "Emotional 0-back model analysis"
 author: "Maarten van der Velde"
-date: "January 2018"
+date: "March 2018"
 output: 
   html_notebook:
     toc: TRUE
@@ -35,7 +35,7 @@ fig_path <- "../fig/"
 
 
 # Plot groups
-data_names = c("control", "depressed")
+data_names = c("control data", "depressed data")
 model_names = c("control model", "depressed model")
 plot_groups = c(rbind(data_names, model_names))
 
@@ -52,7 +52,11 @@ plot_theme <- theme_classic() +
 
 
 # Custom colour scale for plots
-group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
+#group_colours <- c("#5f91e2", "#5fc5e2", "#c4912d", "#e2ba5f")
+
+group_colours <- c("#233555", "#64b4c8", "#a06e14", "#fadc8c") # blue/brown that also works in B/W
+
+# group_colours <- c("#fdb863", "#e66101", "#b2abd2", "#5e3c99") # orange/purple from colorbrewer2.org
 names(group_colours) <- plot_groups
 fill_scale <- scale_fill_manual(name = "", values = group_colours)
 
@@ -78,7 +82,8 @@ rmse <- function(model, data) {
 ```{r}
 lgdat <- read.csv(paste0(data_path, "lgdat_0back.csv"))
 
-lgdat$type <- factor(lgdat$type, levels=rev(levels(lgdat$type)))
+# lgdat$type <- factor(lgdat$type, levels=rev(levels(lgdat$type)))
+levels(lgdat$type) <- data_names
 lgdat$response <- factor(lgdat$response, levels = rev(levels(lgdat$response)))
 ```
 
@@ -145,7 +150,7 @@ if (use_tikz) {
 
 p <- ggplot(accdat_all, aes(x = expected_response, y = acc_mean, group = type, fill = type)) +
   facet_grid(~stimulus, labeller = labeller(stimulus = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), colour = "black") +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=acc_mean-acc_sd, ymax=acc_mean+acc_sd), width=0.2, position = position_dodge(width = 0.9)) +
   labs(x = "Expected response", y = "Accuracy") +
@@ -218,7 +223,7 @@ if (use_tikz) {
 }
 p <- ggplot(respdat_all, aes(x = expected_response, y = rr_mean, group = type, fill = type)) +
   facet_grid(~expression, labeller = labeller(expression = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
-  geom_bar(stat = "identity", position=position_dodge(width=0.9)) +
+  geom_bar(stat = "identity", position=position_dodge(width=0.9), colour = "black") +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=rr_mean-rr_sd, ymax=rr_mean+rr_sd), width=0.2, position = position_dodge(width = 0.9)) +
   labs(x = "Expected response", y = "Response rate") +
@@ -282,7 +287,7 @@ if (use_tikz) {
 
 p <- ggplot(rtdat_all, aes(x = expected_response, y = rt_mean, group = type, fill= type)) +
   facet_grid(~expression, labeller = labeller(expression = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), colour = "black") +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=rt_mean-rt_sd, ymax=rt_mean+rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
   labs(x = "Response", y = "Response time (s)") +
@@ -362,7 +367,7 @@ if (use_tikz) {
 
 p <- ggplot(z_rtdat_all, aes(x = expected_response, y = z_rt_mean, group = type, fill= type)) +
   facet_grid(~expression, labeller = labeller(expression = c(happy = "stimulus: happy", neutral = "stimulus: neutral", sad = "stimulus: sad"))) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), colour = "black") +
   scale_y_continuous() +
   geom_errorbar(aes(ymin=z_rt_mean-z_rt_sd, ymax=z_rt_mean+z_rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
   labs(x = "Response", y = "z-transformed RT") +
@@ -405,6 +410,135 @@ rsq(zrt_model, zrt_data)
 rmse(zrt_model, zrt_data)
 ```
 
+### Simplified plot of match between model and data on all three outcome variables
+```{r}
+library(cowplot)
+
+plot_theme_compact <- plot_theme +
+    theme(
+      axis.title.x=element_blank(),
+      axis.title.y = element_text(size = rel(1.25), margin = margin(0, 0, 0, 0)),
+      axis.text.y = element_text(size = rel(1.25)),
+      axis.text.x=element_blank(),
+      axis.ticks.x=element_blank(),
+      axis.ticks.y = element_line(colour = "black"),
+      legend.title = element_text(size = rel(0)),
+      legend.text = element_text(size = rel(1.0)),
+      legend.position = "bottom",
+      legend.direction = "horizontal",
+      legend.spacing = unit(0.1, "cm")
+    )
+
+
+respdat_model_agg_group <- behdat %>%
+  group_by(type, participant, responded) %>%
+  tally() %>%
+  group_by(type, participant) %>%
+  mutate(freq = n/sum(n)) %>% # Represent as fraction
+  filter(responded == TRUE) %>%
+  select(-responded, -n) %>%
+  group_by(type) %>%
+  summarise(rr_mean = mean(freq), rr_sd = sd(freq))
+
+respdat_lg_agg_group <- respdat_lg %>%
+  group_by(type) %>%
+  summarise(rr_mean = mean(rr_mean), rr_sd = mean(rr_sd))
+
+respdat_all_agg_group <- rbind(data.frame(respdat_lg_agg_group), data.frame(respdat_model_agg_group)) %>%
+  mutate(type = fct_relevel(type, plot_groups))
+
+(rr_rsq <- rsq(respdat_model_agg_group$rr_mean, respdat_lg_agg_group$rr_mean))
+(rr_rmse <- rmse(respdat_model_agg_group$rr_mean, respdat_lg_agg_group$rr_mean))
+
+p_rr <- ggplot(respdat_all_agg_group, aes(x = type, y = rr_mean, group = type, fill = type)) +
+  geom_bar(stat = "identity", position=position_dodge(width=0.9), colour = "black") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) +
+  geom_errorbar(aes(ymin=rr_mean-rr_sd, ymax=rr_mean+rr_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(y = "Response rate") +
+  fill_scale + 
+  plot_theme_compact +
+  guides(fill = FALSE)
+
+
+
+accdat_model_agg_group <- behdat_filtered %>%
+  group_by(participant, type) %>%
+  summarise(acc = mean(accuracy)) %>%
+  group_by(type) %>%
+  summarise(acc_mean = mean(acc), acc_sd = sd(acc))
+
+
+accdat_lg_agg_group <- lgdat %>%
+  rename(valence = expression) %>%
+  mutate(acc_sd = NA) %>%
+  group_by(type) %>%
+  summarise(acc_mean = mean(acc_mean), acc_sd = mean(acc_sd))
+  
+  
+accdat_all_ag_group <- rbind(data.frame(accdat_lg_agg_group), data.frame(accdat_model_agg_group)) %>%
+  mutate(type = fct_relevel(type, plot_groups))
+
+
+(acc_rsq <- rsq(accdat_model_agg_group$acc_mean, accdat_lg_agg_group$acc_mean))
+(acc_rmse <- rmse(accdat_model_agg_group$acc_mean, accdat_lg_agg_group$acc_mean))
+
+p_acc <- ggplot(accdat_all_ag_group, aes(x = type, y = acc_mean, group = type, fill = type)) +
+  geom_bar(stat = "identity", position=position_dodge(width=0.9), colour = "black") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) +
+  geom_errorbar(aes(ymin=acc_mean-acc_sd, ymax=acc_mean+acc_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(y = "Accuracy") +
+  fill_scale + 
+  plot_theme_compact +
+  guides(fill = FALSE)
+
+rtdat_model_agg_group <- behdat_filtered %>%
+  filter(outcome == "correct") %>%
+  group_by(type, participant) %>%
+  summarise(rt = mean(rt)) %>%
+  group_by(type) %>%
+  summarise(rt_mean = mean(rt), rt_sd = sd(rt))
+
+rtdat_lg_agg_group <- lgdat %>%
+  rename(valence = expression) %>%
+  group_by(type) %>%
+  summarise(rt_mean = mean(rt_mean), rt_sd = mean(rt_sd))
+
+rtdat_all_agg_group <- rbind(data.frame(rtdat_lg_agg_group), data.frame(rtdat_model_agg_group)) %>%
+  mutate(type = fct_relevel(type, plot_groups))
+
+(rt_rsq <- rsq(rtdat_model_agg_group$rt_mean, rtdat_lg_agg_group$rt_mean))
+(rt_rmse <- rmse(rtdat_model_agg_group$rt_mean, rtdat_lg_agg_group$rt_mean))
+
+p_rt <- ggplot(rtdat_all_agg_group, aes(x = type, y = rt_mean, group = type, fill = type)) +
+  geom_bar(stat = "identity", position=position_dodge(width=0.9), colour = "black") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1.05)) +
+  geom_errorbar(aes(ymin=rt_mean-rt_sd, ymax=rt_mean+rt_sd), width=0.2, position = position_dodge(width = 0.9)) +
+  labs(y = "Response time (s)") +
+  fill_scale + 
+  plot_theme_compact +
+  guides(fill=guide_legend(title = "", ncol=2))
+
+
+
+
+
+p_legend <- get_legend(p_rt)
+
+p_rt <- p_rt + guides(fill = FALSE)
+
+if (use_tikz) {
+  tikz(file = paste0(fig_path, "0backAllSimple.tex"), width = 3.25, height = 2.5)
+}
+
+p <- plot_grid(p_rr, p_acc, p_rt, NULL, p_legend, NULL, nrow = 2, labels=c("a", "b", "c", "", "", ""), rel_heights = c(2.1,0.4))
+
+print(p)
+
+if (use_tikz) {
+  dev.off()
+}
+
+```
 
 
 ## Operator analysis
@@ -484,5 +618,7 @@ print(p)
 
 
 
-
-
+## Session info
+```{r}
+sessionInfo()
+```
