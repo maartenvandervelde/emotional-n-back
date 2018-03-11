@@ -773,7 +773,7 @@ rmse(zrt_model, zrt_data)
 ```
 
 
-### Simplified plot of match between model and data on all three outcome variables
+## Simplified plot of match between model and data on all three outcome variables
 ```{r}
 library(cowplot)
 use_tikz = FALSE
@@ -908,7 +908,7 @@ if (use_tikz) {
 
 ```
 
-### Compact zRT plot of break and no-set conditions
+## Compact z-RT plot of break and no-set conditions
 ```{r}
 
 library(lemon)
